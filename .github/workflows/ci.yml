@@ -1,0 +1,76 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  release-checks:
+    name: release-checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Run release checks
+        run: |
+          python3 -m unittest discover -s tests/release -v
+          python3 tools/verify_release.py
+          make verify-manifest
+
+  sagemath:
+    name: sagemath
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run Python/SageMath checks in SageMath container
+        run: |
+          docker run --rm \
+            --entrypoint /bin/bash \
+            --user root \
+            -e HOME=/tmp/sage-home \
+            -e SAGE_ROOT=/home/sage/sage \
+            -v "$PWD:/workspace" \
+            -w /workspace \
+            sagemath/sagemath:10.8 \
+            -lc '
+              set -euo pipefail
+              SAGE=/home/sage/sage/sage
+              mkdir -p "$HOME" "$HOME/.sage"
+              cd python
+              "$SAGE" -pip install --user -e ".[test]"
+              "$SAGE" -python -m coverage erase
+              for test_file in tests/python/test_*.py; do
+                "$SAGE" -python -m coverage run --append --source=decoder_core,isomorphism,unitary_decouple_decoder "$test_file"
+              done
+              "$SAGE" -python -m coverage xml -o coverage.xml
+              for test_file in tests/sage/core/test_*.sage tests/sage/iso/test_*.sage tests/sage/unitary/test_*.sage; do
+                "$SAGE" "$test_file"
+              done
+            '
+      - name: Upload Python coverage
+        uses: codecov/codecov-action@v5
+        with:
+          files: python/coverage.xml
+          flags: python
+          token: ${{ secrets.CODECOV_TOKEN }}
+          fail_ci_if_error: false
+
+  julia:
+    name: julia
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: julia-actions/setup-julia@v2
+        with:
+          version: '1.12.5'
+      - name: Instantiate and test Julia project
+        run: |
+          julia --color=yes --project=julia/ToricBuilder -e '
+            using Pkg
+            Pkg.instantiate(; allow_autoprecomp=false)
+            include("julia/ToricBuilder/test/runtests.jl")
+          '

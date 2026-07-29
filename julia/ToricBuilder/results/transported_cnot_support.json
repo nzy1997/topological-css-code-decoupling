@@ -1,0 +1,99 @@
+{
+  "metadata": {
+    "schema_version": 1,
+    "transport_formula": "Q = phi_1 * E * phi_1_inv",
+    "support_definition": "maximum total Laurent-monomial count in a column of Q",
+    "source": "Supplementary table: support spreading of transported inter-copy CNOTs",
+    "software": "Julia 1.12.5 and ToricBuilder.jl"
+  },
+  "cases": [
+    {
+      "case_id": "case_001",
+      "f": "1 + x + x*y",
+      "g": "1 + y + x*y",
+      "toric_sectors": 2,
+      "measurements": [
+        {"control": 2, "target": 1, "support": 25},
+        {"control": 1, "target": 2, "support": 7}
+      ]
+    },
+    {
+      "case_id": "case_002",
+      "f": "1 + x + x^-1*y",
+      "g": "1 + y + x*y",
+      "toric_sectors": 3,
+      "measurements": [
+        {"control": 2, "target": 1, "support": 15},
+        {"control": 3, "target": 1, "support": 15},
+        {"control": 1, "target": 2, "support": 15},
+        {"control": 3, "target": 2, "support": 21},
+        {"control": 1, "target": 3, "support": 11},
+        {"control": 2, "target": 3, "support": 11}
+      ]
+    },
+    {
+      "case_id": "case_003",
+      "f": "1 + x + x^2",
+      "g": "1 + y + x^2",
+      "toric_sectors": 2,
+      "measurements": [
+        {"control": 2, "target": 1, "support": 9},
+        {"control": 1, "target": 2, "support": 9}
+      ]
+    },
+    {
+      "case_id": "case_004",
+      "f": "1 + x + x^-1",
+      "g": "1 + y + y^-1",
+      "toric_sectors": 4,
+      "measurements": [
+        {"control": 2, "target": 1, "support": 7},
+        {"control": 3, "target": 1, "support": 21},
+        {"control": 4, "target": 1, "support": 17},
+        {"control": 1, "target": 2, "support": 3},
+        {"control": 3, "target": 2, "support": 11},
+        {"control": 4, "target": 2, "support": 11},
+        {"control": 1, "target": 3, "support": 7},
+        {"control": 2, "target": 3, "support": 7},
+        {"control": 4, "target": 3, "support": 23},
+        {"control": 1, "target": 4, "support": 7},
+        {"control": 2, "target": 4, "support": 7},
+        {"control": 3, "target": 4, "support": 21}
+      ]
+    },
+    {
+      "case_id": "case_005",
+      "f": "1 + x + x*y",
+      "g": "1 + y + x*y^-1",
+      "toric_sectors": 3,
+      "measurements": [
+        {"control": 2, "target": 1, "support": 15},
+        {"control": 3, "target": 1, "support": 17},
+        {"control": 1, "target": 2, "support": 39},
+        {"control": 3, "target": 2, "support": 39},
+        {"control": 1, "target": 3, "support": 43},
+        {"control": 2, "target": 3, "support": 39}
+      ]
+    },
+    {
+      "case_id": "case_006",
+      "f": "1 + x + x^-1",
+      "g": "1 + y + x^3*y^2",
+      "toric_sectors": 4,
+      "measurements": [
+        {"control": 2, "target": 1, "support": 15},
+        {"control": 3, "target": 1, "support": 17},
+        {"control": 4, "target": 1, "support": 21},
+        {"control": 1, "target": 2, "support": 39},
+        {"control": 3, "target": 2, "support": 17},
+        {"control": 4, "target": 2, "support": 21},
+        {"control": 1, "target": 3, "support": 61},
+        {"control": 2, "target": 3, "support": 17},
+        {"control": 4, "target": 3, "support": 29},
+        {"control": 1, "target": 4, "support": 57},
+        {"control": 2, "target": 4, "support": 21},
+        {"control": 3, "target": 4, "support": 23}
+      ]
+    }
+  ]
+}

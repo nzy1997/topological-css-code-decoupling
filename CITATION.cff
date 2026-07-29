@@ -1,0 +1,25 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite both the software and the associated article."
+title: "topological-css-code-decoupling"
+type: software
+repository-code: "https://github.com/nzy1997/topological-css-code-decoupling"
+license: MIT
+authors:
+  - family-names: Ni
+    given-names: Zhongyi
+  - family-names: He
+    given-names: Mingxin
+preferred-citation:
+  type: article
+  title: "Decoupling 2D translation-invariant topological CSS codes"
+  authors:
+    - family-names: Wang
+      given-names: Yifei
+    - family-names: Ni
+      given-names: Zhongyi
+    - family-names: He
+      given-names: Mingxin
+    - family-names: Liu
+      given-names: Jinguo
+    - family-names: Gu
+      given-names: Yingfei

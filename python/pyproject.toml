@@ -1,0 +1,42 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "sage-decoder-decoupling"
+version = "0.1.0"
+description = "SageMath decoupling maps and a baseline decoder for translational CSS codes."
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+  "numpy>=1.24",
+  "pymatching>=2.1",
+]
+authors = [
+  { name = "Mingxin He" },
+]
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "Topic :: Scientific/Engineering :: Mathematics",
+]
+
+[project.optional-dependencies]
+benchmark = [
+  "ldpc>=2.2",
+  "matplotlib>=3.7",
+]
+test = [
+  "coverage>=7",
+  "jupyter>=1",
+  "ldpc>=2.2",
+  "matplotlib>=3.7",
+  "nbconvert>=7",
+]
+
+[tool.setuptools.packages.find]
+include = [
+  "decoder_core",
+  "isomorphism",
+  "isomorphism.*",
+  "unitary_decouple_decoder",
+]
