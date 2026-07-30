@@ -159,10 +159,9 @@ T proportional to q^1.86
 deg(psi_1^-1) proportional to q^0.65
 ```
 
-The Julia result-table field `Maximum_degree_phi_1` stores the same basis-change
-matrix denoted by `psi_1^-1` in the paper's map convention. The plot therefore
-uses the paper-facing label `deg(psi_1^-1)` without changing any numerical
-values.
+The Julia result-table field `Maximum_degree_psi_1_inverse` records the
+paper's basis-change degree `deg(psi_1^-1)` directly, so the plot uses the
+paper-facing label without changing any numerical values.
 
 The reported wall-clock timings were measured on a Mac mini with an Apple M4
 chip (10 CPU cores: 4 performance and 6 efficiency cores) and 32 GB RAM,
@@ -191,7 +190,7 @@ ordered sector pairs for the six BB codes in the supplementary table. The
 script reconstructs each toric form, computes
 
 ```text
-Q = phi_1 * E * phi_1_inv
+Q = psi_1_inverse * E * psi_1
 ```
 
 and reports the maximum Laurent-monomial count in a column of `Q`:

@@ -209,6 +209,29 @@ class ReleaseMetadataTests(unittest.TestCase):
         ):
             self.assertIn(phrase, reproduction)
 
+    def test_julia_degree_one_map_names_match_the_paper(self) -> None:
+        paths = (
+            ROOT / "README.md",
+            ROOT / "docs" / "reproduction.md",
+            ROOT / "julia" / "ToricBuilder" / "docs" / "workflows" / "toric_form_workflow.md",
+            ROOT / "julia" / "ToricBuilder" / "docs" / "expert" / "laurent_gaussian_degree_growth.md",
+            ROOT / "julia" / "ToricBuilder" / "example" / "scripts" / "decouple_bbcodes.jl",
+            ROOT / "julia" / "ToricBuilder" / "example" / "scripts" / "decouple_additional_bb_codes.jl",
+            ROOT / "julia" / "ToricBuilder" / "example" / "scripts" / "transported_cnot_support.jl",
+            ROOT / "julia" / "ToricBuilder" / "example" / "scripts" / "laurent_gaussian_degree_growth.jl",
+            ROOT / "julia" / "ToricBuilder" / "results" / "bb_code_decoupling_results.md",
+            ROOT / "julia" / "ToricBuilder" / "results" / "additional_bb_code_decoupling_results.md",
+            ROOT / "julia" / "ToricBuilder" / "results" / "transported_cnot_support.json",
+        )
+        for path in paths:
+            text = path.read_text(encoding="utf-8")
+            self.assertNotIn("phi_1", text, path)
+            self.assertNotIn("phi1", text, path)
+
+        readme = (ROOT / "README.md").read_text(encoding="utf-8")
+        self.assertIn("psi_1_inverse", readme)
+        self.assertIn("result.psi_inverse.psi_1_inverse", readme)
+
     def test_ci_workflow_declares_release_sage_and_julia_jobs(self) -> None:
         workflow = (ROOT / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
         codecov = (ROOT / ".codecov.yml").read_text(encoding="utf-8")

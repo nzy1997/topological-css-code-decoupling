@@ -14,6 +14,13 @@ The repository contains two complementary implementations:
 They implement the same mathematical program but are not API-equivalent
 packages.
 
+The degree-one map names follow the paper notation at the Julia/Oscar boundary:
+
+| Paper map | Julia/Oscar result | SageMath/Python result |
+|---|---|---|
+| $\psi_1^{-1}$ | `result.psi_1_inverse` | `result.psi_inverse.psi_1_inverse` |
+| $\psi_1$ | `result.psi_1` | `result.psi.psi_1` |
+
 ## Setup
 
 Python/SageMath:

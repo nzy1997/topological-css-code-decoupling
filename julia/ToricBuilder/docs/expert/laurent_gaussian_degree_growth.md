@@ -17,16 +17,16 @@ R = \mathbb F_2[x^{\pm 1},y^{\pm 1}].
 \]
 
 After a `3 x 3` coarse graining, the toric-reduction workflow must construct an
-exact Laurent-polynomial map `phi_1`. The relevant public equation is
+exact Laurent-polynomial map `psi_1_inverse`. The relevant public equation is
 
 \[
-H_{\mathrm{eff}}\,\phi_1 = \widetilde H_Z,
+H_{\mathrm{eff}}\,\psi_1^{-1} = \widetilde H_Z,
 \qquad
 H_{\mathrm{eff}} = P_Z H_Z,
 \]
 
 where `P_Z` is the returned `row_blocks.Hz`. In this example,
-`H_eff` is `9 x 18`, `phi_1` is `18 x 18`, and `Hzt` is `9 x 18`.
+`H_eff` is `9 x 18`, `psi_1_inverse` is `18 x 18`, and `Hzt` is `9 x 18`.
 
 The two direct Gaussian implementations tested here have different drawbacks:
 
@@ -81,9 +81,9 @@ debug = capture_toric_form_debug_matrices(input_matrix; show_progress=false)
 input_Hz = debug.input_matrix[1:9, 1:18]
 H_eff = debug.row_blocks.Hz * input_Hz
 Hzt = debug.standard_blocks.Hz
-phi_1 = debug.phi_1
+psi_1_inverse = debug.psi_1_inverse
 
-@assert H_eff * phi_1 == Hzt
+@assert H_eff * psi_1_inverse == Hzt
 ```
 
 Thus the comparison below is performed on the exact equation certified by the
@@ -274,12 +274,12 @@ The three measured routes can be summarized as follows:
 | --- | --- | --- | --- | --- |
 | ordinary Gauss-Jordan | fraction-field witness | numerator 7, denominator 6 | numerator 8, denominator 10 | no |
 | division-free direct elimination | polynomial intermediates | input 2, final 35 | input 2, final 96 | not an invertible Laurent reduction |
-| exact Laurent equation solve | `phi_1` | 1 | 3 | yes |
+| exact Laurent equation solve | `psi_1_inverse` | 1 | 3 | yes |
 
 The current workflow verifies
 
 \[
-H_{\mathrm{eff}}\phi_1 = \widetilde H_Z
+H_{\mathrm{eff}}\psi_1^{-1} = \widetilde H_Z
 \]
 
 exactly in `R`. It obtains a low-degree polynomial witness without introducing
