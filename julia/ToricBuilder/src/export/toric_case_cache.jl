@@ -485,8 +485,79 @@ function _rename_namedtuple_fields(value::NamedTuple, renames::AbstractDict{Symb
 end
 
 function _canonical_cache_write_value(value, renames::AbstractDict{Symbol, Symbol})
-    value isa NamedTuple || return value
-    return _rename_namedtuple_fields(value, renames)
+    if value isa NamedTuple
+        return _rename_namedtuple_fields(value, renames)
+    elseif value isa AbstractDict
+        return _rename_dict_fields(value, renames)
+    end
+
+    legacy_names = _legacy_cache_property_names(value, renames)
+    if !isempty(legacy_names)
+        throw(ArgumentError(
+            "Cannot save v3 cache value with legacy fields: $(join(string.(legacy_names), ", "))",
+        ))
+    end
+
+    return value
+end
+
+function _rename_dict_fields(value::AbstractDict, renames::AbstractDict{Symbol, Symbol})
+    renamed = _empty_serialization_dict(value)
+    seen = Dict{Any, Any}()
+    for (key, entry) in pairs(value)
+        renamed_key = _renamed_cache_dict_key(key, renames)
+        collision_token = _cache_field_collision_token(renamed_key, renames)
+        if haskey(seen, collision_token)
+            throw(ArgumentError(
+                "Cannot rename cache field $key to $renamed_key because that field already exists",
+            ))
+        end
+        seen[collision_token] = key
+        renamed[renamed_key] = entry
+    end
+    return renamed
+end
+
+function _renamed_cache_dict_key(key, renames::AbstractDict{Symbol, Symbol})
+    symbolic_key = _cache_symbol_key(key)
+    if isnothing(symbolic_key) || !haskey(renames, symbolic_key)
+        return key
+    elseif key isa Symbol
+        return renames[symbolic_key]
+    end
+    return string(renames[symbolic_key])
+end
+
+_cache_symbol_key(key::Symbol) = key
+_cache_symbol_key(key::AbstractString) = Symbol(key)
+_cache_symbol_key(key) = nothing
+
+function _cache_field_collision_token(key, renames::AbstractDict{Symbol, Symbol})
+    symbolic_key = _cache_symbol_key(key)
+    if isnothing(symbolic_key)
+        return (:key, key)
+    end
+    canonical_symbol = get(renames, symbolic_key, symbolic_key)
+    if haskey(renames, symbolic_key) || canonical_symbol in values(renames)
+        return (:field, canonical_symbol)
+    end
+    return (:key, key)
+end
+
+function _legacy_cache_property_names(value, renames::AbstractDict{Symbol, Symbol})
+    names = try
+        propertynames(value)
+    catch
+        return Symbol[]
+    end
+
+    legacy_names = Symbol[]
+    for name in names
+        if name isa Symbol && haskey(renames, name)
+            push!(legacy_names, name)
+        end
+    end
+    return legacy_names
 end
 
 function _decoupled_toric_case_from_payload(payload)
