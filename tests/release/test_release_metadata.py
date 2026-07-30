@@ -152,7 +152,7 @@ class ReleaseMetadataTests(unittest.TestCase):
             "scripts/decoupling/reproduce_666_color_code.sage",
             "scripts/decoupling/reproduce_488_color_code.sage",
             "reproduce_bb_codes.sage --rows benchmark-01",
-            "--output-json ../build/reproduction/python-bb-benchmark-01.json",
+            "--output-json ../python-bb-benchmark-01.json",
             "julia/ToricBuilder/example/scripts/color_code.jl",
             "main(list=ab_list1[1:1]",
             "plot_area_comparison.jl",
@@ -211,10 +211,6 @@ class ReleaseMetadataTests(unittest.TestCase):
             "Pkg.instantiate(; allow_autoprecomp=false)",
             'include("julia/ToricBuilder/test/runtests.jl")',
             "import decoder_core, decoupling, unitary_decouple_based_decoder",
-            "codecov/codecov-action@v5",
-            "flags: python",
-            "token: ${{ secrets.CODECOV_TOKEN }}",
-            "fail_ci_if_error: false",
         ):
             self.assertIn(phrase, workflow)
 

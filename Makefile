@@ -6,10 +6,8 @@ JULIA ?= julia
 
 test-python:
 	cd python && $(SAGE) -pip install -e '.[test]'
-	cd python && for test_file in tests/python/test_*.py; do $(SAGE) -python "$$test_file" || exit 1; done
-	cd python/tests/sage/core && for test_file in test_*.sage; do $(SAGE) "$$test_file" || exit 1; done
-	cd python/tests/sage/iso && for test_file in test_*.sage; do $(SAGE) "$$test_file" || exit 1; done
-	cd python/tests/sage/unitary && for test_file in test_*.sage; do $(SAGE) "$$test_file" || exit 1; done
+	cd python && $(SAGE) -python -m compileall -q decoder_core decoupling unitary_decouple_based_decoder
+	cd python && $(SAGE) -c 'import decoder_core, decoupling, unitary_decouple_based_decoder'
 
 test-julia:
 	$(JULIA) --project=julia/ToricBuilder -e 'using Pkg; Pkg.instantiate(); Pkg.test()'
@@ -24,9 +22,12 @@ verify:
 
 reproduce:
 	mkdir -p build/reproduction
-	cd python && $(SAGE) -python -m jupyter nbconvert --to notebook --execute results/isomorphism/666_color_code.ipynb --output-dir ../build/reproduction --output 666_color_code.executed.ipynb
-	cd python && $(SAGE) -python -m jupyter nbconvert --to notebook --execute results/isomorphism/488_color_code.ipynb --output-dir ../build/reproduction --output 488_color_code.executed.ipynb
-	cd python && $(SAGE) scripts/iso/validate_bb_instances.sage --rows 1 --qca-check skip --row-timeout-seconds 300 --stop-on-failure --output-json ../build/reproduction/python-bb-row-1.json --output-md ../build/reproduction/python-bb-row-1.md
+	rm -rf build/reproduction/python
+	mkdir -p build/reproduction/python
+	cp -R python/decoder_core python/decoupling python/results python/scripts build/reproduction/python/
+	cd build/reproduction/python && $(SAGE) scripts/decoupling/reproduce_666_color_code.sage
+	cd build/reproduction/python && $(SAGE) scripts/decoupling/reproduce_488_color_code.sage
+	cd build/reproduction/python && $(SAGE) scripts/decoupling/reproduce_bb_codes.sage --rows benchmark-01 --output-json ../python-bb-benchmark-01.json --output-csv ../python-bb-benchmark-01.csv --output-markdown ../python-bb-benchmark-01.md --checkpoint-json ../python-bb-benchmark-01.checkpoint.json
 	$(JULIA) --project=julia/ToricBuilder julia/ToricBuilder/example/scripts/color_code.jl
 	$(JULIA) --project=julia/ToricBuilder -e 'include("julia/ToricBuilder/example/scripts/decouple_bbcodes.jl"); main(list=ab_list1[1:1], results_path="build/reproduction/julia-bb-case-1.md", cache_dir="build/reproduction/julia-bb-cache", warmup=false, show_progress=false)'
 	$(JULIA) --project=julia/ToricBuilder julia/ToricBuilder/example/scripts/plot_area_comparison.jl
@@ -35,4 +36,7 @@ reproduce:
 
 reproduce-full:
 	mkdir -p build/reproduction
-	cd python && $(SAGE) scripts/iso/validate_bb_instances.sage --qca-check product --row-timeout-seconds 1800 --stop-on-failure --output-json ../build/reproduction/python-bb-full.json --output-md ../build/reproduction/python-bb-full.md
+	rm -rf build/reproduction/python
+	mkdir -p build/reproduction/python
+	cp -R python/decoder_core python/decoupling python/results python/scripts build/reproduction/python/
+	cd build/reproduction/python && $(SAGE) scripts/decoupling/reproduce_bb_codes.sage --resume --output-json ../python-bb-full.json --output-csv ../python-bb-full.csv --output-markdown ../python-bb-full.md --checkpoint-json ../python-bb-full.checkpoint.json

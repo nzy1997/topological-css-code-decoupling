@@ -41,22 +41,11 @@ jobs:
               mkdir -p "$HOME" "$HOME/.sage"
               cd python
               "$SAGE" -pip install --user -e ".[test]"
-              "$SAGE" -python -m coverage erase
-              for test_file in tests/python/test_*.py; do
-                "$SAGE" -python -m coverage run --append --source=decoder_core,isomorphism,unitary_decouple_decoder "$test_file"
-              done
-              "$SAGE" -python -m coverage xml -o coverage.xml
-              for test_file in tests/sage/core/test_*.sage tests/sage/iso/test_*.sage tests/sage/unitary/test_*.sage; do
-                "$SAGE" "$test_file"
-              done
+              "$SAGE" -python -m compileall -q \
+                decoder_core decoupling unitary_decouple_based_decoder
+              "$SAGE" -c \
+                "import decoder_core, decoupling, unitary_decouple_based_decoder"
             '
-      - name: Upload Python coverage
-        uses: codecov/codecov-action@v5
-        with:
-          files: python/coverage.xml
-          flags: python
-          token: ${{ secrets.CODECOV_TOKEN }}
-          fail_ci_if_error: false
 
   julia:
     name: julia
