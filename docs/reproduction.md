@@ -7,6 +7,7 @@ to `build/reproduction/` and is not tracked.
 
 ```bash
 make test-python
+make check-julia-env
 make test-julia
 make verify-manifest
 make verify
@@ -17,6 +18,36 @@ make reproduce
 and is intentionally not a per-push CI target. Both Python reproduction
 targets execute from a copied snapshot under `build/reproduction/python/`, so
 generated results never modify tracked notebooks or source files.
+
+## Julia/Oscar Environment
+
+Install the pinned Julia environment and verify that Oscar can load with:
+
+```bash
+make check-julia-env
+```
+
+The target disables the user's Julia startup file, skips automatic full-project
+precompilation, and prints `Julia/Oscar environment: ok` only after `using Oscar`
+succeeds. This catches an incomplete installation even when `Pkg.instantiate()`
+previously exited successfully.
+
+If Oscar fails with `GAP variable _JULIAINTERFACE_ERROR_BUFFER not bound`, or
+reports that the lazy artifact `GAP_pkg_crisp` is missing, force-install that
+artifact from GAP's pinned `Artifacts.toml`:
+
+```bash
+julia --startup-file=no --project=julia/ToricBuilder -e '
+  using Pkg
+  using Pkg.Artifacts
+  Pkg.instantiate(; allow_autoprecomp=false)
+  gap_info = only(info for info in values(Pkg.dependencies()) if info.name == "GAP")
+  isnothing(gap_info.source) && error("GAP has no installed source directory")
+  gap_artifacts = joinpath(gap_info.source, "Artifacts.toml")
+  ensure_artifact_installed("GAP_pkg_crisp", gap_artifacts)
+'
+make check-julia-env
+```
 
 ## 6.6.6 And 4.8.8 Color Codes
 
@@ -44,6 +75,9 @@ The Julia 6.6.6 example is:
 julia --project=julia/ToricBuilder \
   julia/ToricBuilder/example/scripts/color_code.jl
 ```
+
+The command prints a compact summary ending in `verification: ok`, including
+the period, coarse-grained matrix size, and product-state/toric decomposition.
 
 ## BB Validation
 

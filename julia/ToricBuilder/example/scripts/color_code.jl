@@ -52,6 +52,12 @@ function main(; show_progress::Bool=false)
     size(A_cg) == (2 * l^2, 4 * l^2) || error("unexpected coarse_grain output shape")
     result.l == l || error("build_toric_form returned an unexpected period bound")
 
+    println("Color-code toric-form reproduction")
+    println("period L: $l")
+    println("coarse-grained matrix size: $(size(A_cg, 1)) x $(size(A_cg, 2))")
+    println("decomposition: $(result.product_state_num) product-state sector + $(result.toric_num) toric sectors")
+    println("verification: ok")
+
     return (; poly_vector, l, L_table, A, A_cg, result)
 end
 
