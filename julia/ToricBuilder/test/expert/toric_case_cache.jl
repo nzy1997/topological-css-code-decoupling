@@ -54,6 +54,41 @@ using Oscar
     end
 end
 
+@testset "save_decoupled_toric_case canonicalizes public legacy instances" begin
+    legacy_case = ToricBuilder.DecoupledToricCase(
+        2,
+        "legacy_public_instance",
+        :ok,
+        Dict{String, Any}(),
+        String[],
+        (phi_1=:psi_1_inverse_value, phi_1_inv=:psi_1_value),
+        (phi_1=:debug_psi_1_inverse_value, phi_1_inv=:debug_psi_1_value),
+        "0",
+        Dict{String, Any}(),
+    )
+
+    mktempdir() do tmpdir
+        path = joinpath(tmpdir, "legacy_public_instance.jls")
+        save_decoupled_toric_case(path, legacy_case)
+        raw_payload = Oscar.load(path)
+        raw_transfer = ToricBuilder._restore_serialization_safe_value(
+            ToricBuilder._payload_field(raw_payload, :transfer_result),
+        )
+        raw_debug = ToricBuilder._restore_serialization_safe_value(
+            ToricBuilder._payload_field(raw_payload, :debug_result),
+        )
+        @test Int(ToricBuilder._payload_field(raw_payload, :format_version)) == 3
+        @test raw_transfer.psi_1_inverse == :psi_1_inverse_value
+        @test raw_transfer.psi_1 == :psi_1_value
+        @test !hasproperty(raw_transfer, :phi_1)
+        @test !hasproperty(raw_transfer, :phi_1_inv)
+        @test raw_debug.psi_1_inverse == :debug_psi_1_inverse_value
+        @test raw_debug.psi_1 == :debug_psi_1_value
+        @test !hasproperty(raw_debug, :phi_1)
+        @test !hasproperty(raw_debug, :phi_1_inv)
+    end
+end
+
 @testset "DecoupledToricCase debug capture is opt-in" begin
     F = GF(2)
     Rxy, (x, y) = laurent_polynomial_ring(F, ["x", "y"])

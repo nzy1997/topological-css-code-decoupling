@@ -400,10 +400,20 @@ function _decoupled_toric_case_payload(decoupled_case::DecoupledToricCase)
         "runtime_info" => _serialization_safe_value(decoupled_case.runtime_info),
     )
     if !isnothing(decoupled_case.transfer_result)
-        payload["transfer_result"] = _serialization_safe_value(decoupled_case.transfer_result)
+        payload["transfer_result"] = _serialization_safe_value(
+            _canonical_cache_write_value(
+                decoupled_case.transfer_result,
+                V2_TRANSFER_RESULT_FIELD_RENAMES,
+            ),
+        )
     end
     if !isnothing(decoupled_case.debug_result)
-        payload["debug_result"] = _serialization_safe_value(decoupled_case.debug_result)
+        payload["debug_result"] = _serialization_safe_value(
+            _canonical_cache_write_value(
+                decoupled_case.debug_result,
+                V2_DEBUG_RESULT_FIELD_RENAMES,
+            ),
+        )
     end
     return payload
 end
@@ -472,6 +482,11 @@ function _rename_namedtuple_fields(value::NamedTuple, renames::AbstractDict{Symb
         push!(values, getproperty(value, name))
     end
     return NamedTuple{Tuple(names)}(Tuple(values))
+end
+
+function _canonical_cache_write_value(value, renames::AbstractDict{Symbol, Symbol})
+    value isa NamedTuple || return value
+    return _rename_namedtuple_fields(value, renames)
 end
 
 function _decoupled_toric_case_from_payload(payload)
