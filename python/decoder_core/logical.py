@@ -3,29 +3,27 @@
 from dataclasses import dataclass
 
 
-def classify_attempt(hx_matrix, classifier, true_error, syndrome, correction):
+def classify_attempt(h_x_matrix, classifier, true_error, syndrome, correction):
     """Return ``(logical_failure, decode_failure)`` for one decoder output.
 
     Args:
-        hx_matrix: Finite X-check matrix used for syndrome validation.
+        h_x_matrix: Finite X-check matrix used for syndrome validation.
         classifier: Logical-failure classifier for zero-syndrome residuals.
         true_error: Sampled physical error used as the benchmark ground truth.
         syndrome: GF(2) syndrome vector to decode or classify.
         correction: Candidate GF(2) correction vector.
 
     Returns:
-        object: ``(logical_failure, decode_failure)`` for one decoder output.
-
+        tuple: ``(logical_failure, decode_failure)``.
     """
-    # Keep syndrome normalization separate from the matching solve.
-    if hx_matrix * correction != syndrome:
+    if h_x_matrix * correction != syndrome:
         return True, True
     residual = true_error + correction
     return classifier.is_logical_failure(residual), False
 
 
 def classify_verified_attempt(
-    hx_matrix,
+    h_x_matrix,
     classifier,
     true_error,
     syndrome,
@@ -36,7 +34,7 @@ def classify_verified_attempt(
     """Classify a decoder output that is expected to always match syndrome.
 
     Args:
-        hx_matrix: Finite X-check matrix used for syndrome validation.
+        h_x_matrix: Finite X-check matrix used for syndrome validation.
         classifier: Logical-failure classifier for zero-syndrome residuals.
         true_error: Sampled physical error used as the benchmark ground truth.
         syndrome: GF(2) syndrome vector to decode or classify.
@@ -44,11 +42,9 @@ def classify_verified_attempt(
         decoder_name: Human-readable decoder name for diagnostics.
 
     Returns:
-        vector: Classify a decoder output that is expected to always match syndrome.
-
+        tuple: ``(logical_failure, False)``.
     """
-    # Keep syndrome normalization separate from the matching solve.
-    if hx_matrix * correction != syndrome:
+    if h_x_matrix * correction != syndrome:
         raise ValueError(f"{decoder_name} returned a correction with mismatched syndrome.")
     residual = true_error + correction
     return classifier.is_logical_failure(residual), False
@@ -58,18 +54,11 @@ def classify_verified_attempt(
 class LogicalFailureClassifier:
     """Classify residual vectors modulo a stabilizer column space."""
 
-    hx_matrix: object
+    h_x_matrix: object
     stabilizer_matrix: object
 
     def __post_init__(self):
-        """Cache checks cutting out ``im(stabilizer_matrix)``.
-
-        Args:
-            None.
-
-        Returns:
-            None: This function mutates local state or performs validation only.
-        """
+        """Cache checks cutting out ``im(stabilizer_matrix)``."""
         # A residual is a stabilizer exactly when it is orthogonal to every
         # vector in the right kernel of the stabilizer-column span.  Caching the
         # basis makes repeated Monte Carlo classification cheap and consistent.
@@ -84,10 +73,9 @@ class LogicalFailureClassifier:
             residual: Zero-syndrome residual after adding error and correction.
 
         Returns:
-            bool: True when the requested invariant or condition holds.
+            bool: Whether the residual has zero syndrome.
         """
-        # Keep syndrome normalization separate from the matching solve.
-        return (self.hx_matrix * residual).is_zero()
+        return (self.h_x_matrix * residual).is_zero()
 
     def is_stabilizer_residual(self, residual):
         """Return whether ``residual`` lies in the stabilizer column space.
@@ -96,9 +84,8 @@ class LogicalFailureClassifier:
             residual: Zero-syndrome residual after adding error and correction.
 
         Returns:
-            bool: True when the requested invariant or condition holds.
+            bool: Whether the residual lies in the stabilizer span.
         """
-        # Keep syndrome normalization separate from the matching solve.
         return (self._stabilizer_checks * residual).is_zero()
 
     def is_logical_failure(self, residual):
@@ -108,9 +95,8 @@ class LogicalFailureClassifier:
             residual: Zero-syndrome residual after adding error and correction.
 
         Returns:
-            bool: True when the requested invariant or condition holds.
+            bool: Whether the residual represents a logical failure.
         """
-        # Keep syndrome normalization separate from the matching solve.
         if not self.has_zero_syndrome(residual):
             return True
         return not self.is_stabilizer_residual(residual)

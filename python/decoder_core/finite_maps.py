@@ -2,7 +2,7 @@
 
 from sage.all import GF, Matrix, vector
 
-from isomorphism import R
+from decoupling import R
 
 
 def finite_index(component, site_index, shape):

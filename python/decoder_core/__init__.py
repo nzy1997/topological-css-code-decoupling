@@ -8,9 +8,6 @@ from importlib import import_module
 
 
 _EXPORT_MODULES = {
-    "BBRow": "bb_cases",
-    "BB_ROWS": "bb_cases",
-    "BB_ROWS_LTE_63": "bb_cases",
     "DecoderStats": "stats",
     "LogicalFailureClassifier": "logical",
     "RateErrorBar": "stats",
@@ -19,17 +16,18 @@ _EXPORT_MODULES = {
     "binomial_rate_error_bar": "stats",
     "binomial_standard_error": "stats",
     "binomial_wilson_interval": "stats",
-    "bposd_decoder": "ldpc",
+    "bp_osd_decoder": "ldpc",
     "classify_attempt": "logical",
     "classify_verified_attempt": "logical",
-    "decode_with_bposd": "ldpc",
+    "decode_with_bp_osd": "ldpc",
     "numpy_rng": "sampling",
     "plot_logical_error_rates": "plotting",
     "plot_rate_points": "plotting",
-    "require_bposd": "ldpc",
+    "require_bp_osd": "ldpc",
     "runtime_metadata": "benchmark_metadata",
     "sample_data_error": "sampling",
     "source_revision": "benchmark_metadata",
+    "source_tree_dirty": "benchmark_metadata",
     "to_numpy_uint8": "arrays",
 }
 
@@ -43,9 +41,8 @@ def __getattr__(name):
         name: Human-readable field name used in validation errors.
 
     Returns:
-        object: Load exported helpers only when requested.
+        object: The requested public helper.
     """
-    # Keep syndrome normalization separate from the matching solve.
     module_name = _EXPORT_MODULES.get(name)
     if module_name is None:
         raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

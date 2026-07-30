@@ -6,15 +6,15 @@ from .stats import binomial_rate_error_bar, binomial_wilson_interval
 
 
 DEFAULT_DECODER_MARKERS = {
-    "unitary_decouple": "o",
-    "bposd": "s",
+    "unitary_decouple_based": "o",
+    "bp_osd": "s",
     "matching": "^",
     "bp_reweighted": "D",
 }
 
 DEFAULT_DECODER_LINESTYLES = {
-    "unitary_decouple": "-",
-    "bposd": "--",
+    "unitary_decouple_based": "-",
+    "bp_osd": "--",
     "matching": "-.",
     "bp_reweighted": ":",
 }

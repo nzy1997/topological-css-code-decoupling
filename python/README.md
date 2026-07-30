@@ -1,223 +1,197 @@
-# Sage Decoder: decoupling implementation
+# Decoupling 2D topological CSS codes
 
-This directory contains the SageMath implementation of the decoupling algorithm
-for two-dimensional translational CSS codes and the unitary decoupling decoder
-built on top of it. The public packages are:
+This directory contains the SageMath implementation of the decoupling
+algorithm for two-dimensional translational topological CSS codes and the
+unitary-decouple-based decoder built from its chain isomorphisms.
 
-- `isomorphism`: period search, coarse graining, and decoupling maps;
-- `unitary_decouple_decoder`: the unitary decoupling decoder;
-- `decoder_core`: shared finite-torus, matching, validation, and sampling
+The public packages are:
+
+- `decoupling`: translation representations, anyon-preserving superlattices,
+  coarse graining, standard complexes, and chain isomorphisms;
+- `unitary_decouple_based_decoder`: finite-torus decoding through the standard
+  product-state and toric-code complex;
+- `decoder_core`: shared finite-torus, matching, sampling, and benchmark
   utilities.
 
 ## Requirements and installation
 
-Use Python 3.10 or newer inside a SageMath environment. From this directory,
-install the packages and test dependencies with:
+Use Python 3.10 or newer inside a SageMath environment:
 
 ```bash
-sage -pip install -e '.[test]'
+sage -pip install -e .
 ```
 
-For an already built wheel, use:
+NumPy and PyMatching are base dependencies. The optional `benchmark` extra
+adds `ldpc` and Matplotlib:
 
 ```bash
-sage -pip install sage_decoder_decoupling-0.1.0-py3-none-any.whl
+sage -pip install -e '.[benchmark]'
 ```
 
-The base dependencies are NumPy and PyMatching. The optional `benchmark`
-dependency group adds `ldpc` and Matplotlib for the reproduction scripts.
+## Decoupling-unitary API
 
-## Quick start: run the supplement algorithm
-
-The supplement uses a source CSS complex and a standard decoupled complex:
+For an input CSS chain
 
 ```text
-source degree 2 --hz_source_dagger--> source degree 1 --hx_source--> source degree 0
+degree 2 --H_Z^dagger--> degree 1 --H_X--> degree 0
 ```
 
-The forward maps go from the source complex to the standard complex and obey
+the paper's forward chain isomorphisms obey
 
 ```text
-hx_standard * phi1 = phi0 * hx_source
-hz_standard_dagger * phi2 = phi1 * hz_source_dagger
+H_X_tilde * psi_1 = psi_0 * H_X
+H_Z_tilde_dagger * psi_2 = psi_1 * H_Z_dagger
 ```
 
-The elimination algorithm directly constructs the inverse direction:
+The algorithm directly constructs the inverse direction:
 
 ```text
-hx_source * phi1_inverse = phi0_inverse * hx_standard
-hz_source_dagger * phi2_inverse
-    = phi1_inverse * hz_standard_dagger
+H_X * psi_1_inverse = psi_0_inverse * H_X_tilde
+H_Z_dagger * psi_2_inverse
+    = psi_1_inverse * H_Z_tilde_dagger
 ```
-
-The following Sage code runs the algorithm on the smallest two-generator
-example and checks both directions:
 
 ```python
-from isomorphism import construct_excitation_map, decouple_coarse_matrix, x, y
-from isomorphism.css import antipode_matrix, split_css_blocks
+from decoupling import (
+    build_two_generator_css_excitation_map,
+    dagger_matrix,
+    solve_decoupling_unitary,
+    x,
+    y,
+)
+from decoupling.css import split_css_blocks
 
-epsilon = construct_excitation_map(1 + x, 1 + y)
-result = decouple_coarse_matrix(
-    epsilon,
+input_excitation_map = build_two_generator_css_excitation_map(
+    1 + x,
+    1 + y,
+)
+result = solve_decoupling_unitary(
+    input_excitation_map,
     num_x_checks=1,
     num_qubits=2,
-    verify=True,
+    compute_psi=True,
 )
 
-hz_source, hx_source = split_css_blocks(epsilon, 1, 2)
-hz_source_dagger = antipode_matrix(hz_source)
-hz_standard_dagger = antipode_matrix(result.hz_standard)
-
-assert result.hx_standard * result.maps.phi1 == result.maps.phi0 * hx_source
+h_z, h_x = split_css_blocks(input_excitation_map, 1, 2)
+assert result.h_x_tilde * result.psi.psi_1 == result.psi.psi_0 * h_x
 assert (
-    hz_standard_dagger * result.maps.phi2
-    == result.maps.phi1 * hz_source_dagger
+    result.h_z_tilde_dagger * result.psi.psi_2
+    == result.psi.psi_1 * dagger_matrix(h_z)
 )
 assert (
-    hx_source * result.inverse_maps.phi1_inverse
-    == result.inverse_maps.phi0_inverse * result.hx_standard
+    h_x * result.psi_inverse.psi_1_inverse
+    == result.psi_inverse.psi_0_inverse * result.h_x_tilde
 )
 assert (
-    hz_source_dagger * result.inverse_maps.phi2_inverse
-    == result.inverse_maps.phi1_inverse * hz_standard_dagger
+    dagger_matrix(h_z) * result.psi_inverse.psi_2_inverse
+    == result.psi_inverse.psi_1_inverse * result.h_z_tilde_dagger
 )
 ```
 
-`decouple_coarse_matrix(...)` returns a `DecouplingResult` with exactly these
-fields:
+`DecouplingUnitaryResult` exposes exactly:
 
 ```text
-source_coarse_matrix
-hx_standard
-hz_standard
-inverse_maps
-maps
+input_excitation_map
+h_x_tilde
+h_z_tilde_dagger
+psi_inverse
+psi
 diagnostics
 ```
 
-`inverse_maps` always contains `phi2_inverse`, `phi1_inverse`, and
-`phi0_inverse`. By default, `maps` also contains the forward maps `phi2`,
-`phi1`, and `phi0`. Use `compute_forward_maps=False` when only the directly
-constructed inverse maps are needed:
+`psi_inverse` always contains `psi_2_inverse`, `psi_1_inverse`, and
+`psi_0_inverse`. The default `compute_psi=False` avoids full Laurent matrix
+inversions. Set `compute_psi=True` only when `psi_2`, `psi_1`, and `psi_0` are
+needed explicitly.
 
-```python
-inverse_only = decouple_coarse_matrix(
-    epsilon,
-    num_x_checks=1,
-    num_qubits=2,
-    compute_forward_maps=False,
-)
-assert inverse_only.maps is None
-```
+The internal construction follows the paper's stages:
+`xi_2`, `xi_1`, `xi_0`, then `phi_1`, `phi_2`, `phi_2_prime`, `eta`, and
+`phi_1_prime`. Only their total compositions are called `psi_inverse`.
 
-Computing forward maps requires Laurent matrix inversions. The `verify=True`
-option adds solver-witness and chain-map checks, so both options can be
-expensive for large coarse matrices.
-
-For a code in the original translation cell, first determine a square or
-oblique period, then apply `straight_coarse_grain(...)` or
-`oblique_coarse_grain(...)`. The notebooks below show this complete workflow.
-
-## Quick start: unitary decoupling decoder
-
-`DecouplingDecoder.from_bb(...)` accepts two BB Laurent generators. It finds a
-coarse cell, constructs the inverse decoupling maps, projects them to an
-`Lx`-by-`Ly` finite torus, and decodes through the standard complex:
+## Unitary-decouple-based decoder
 
 ```python
 from sage.all import GF, vector
 
-from isomorphism import x, y
-from unitary_decouple_decoder import DecouplingDecoder
+from decoupling import x, y
+from unitary_decouple_based_decoder import UnitaryDecoupleBasedDecoder
 
-decoder = DecouplingDecoder.from_bb(
+decoder = UnitaryDecoupleBasedDecoder.from_bb(
     1 + x + x * y,
     1 + y + x * y,
     2,
     2,
 )
-assert decoder.check_chain_relation()
-
 error = vector(GF(2), decoder.correction_size)
 error[0] = 1
 syndrome = decoder.syndrome(error)
 correction = decoder.decode(syndrome, verify=True)
-
 assert decoder.syndrome(correction) == syndrome
 ```
 
-For an already coarse-grained CSS excitation matrix, construct the same public
-decoder with:
+Finite vectors use component-major ordering. Syndrome transport uses
+`psi_0_finite`; correction lift-back uses `psi_1_inverse_finite`.
 
-```python
-decoder = DecouplingDecoder.from_coarse_css(
-    coarse_epsilon,
-    num_x_checks=num_x_checks,
-    num_qubits=num_qubits,
-    Lx=Lx,
-    Ly=Ly,
-)
-```
+## Paper reproductions
 
-All finite vectors use component-major ordering. The decoder data flow is:
-
-```text
-standard_syndrome = phi0_finite * source_syndrome
-standard_correction = standard_decoder.decode(standard_syndrome)
-source_correction = phi1_inverse_finite * standard_correction
-```
-
-This is why syndrome transport uses the forward degree-zero map while
-correction lift-back uses the inverse degree-one map.
-
-## Worked notebooks
-
-The detailed examples are Sage Jupyter notebooks included with this
-paper-companion repository:
-
-- [6.6.6 color code](results/isomorphism/666_color_code.ipynb)
-- [4.8.8 color code](results/isomorphism/488_color_code.ipynb)
-- [Bivariate bicycle code instances](results/isomorphism/bb_code_instances.ipynb)
-
-Start Jupyter through Sage from this directory so the local packages are
-available:
+The three decoupling runners use the paper-specified superlattice bases and
+fail with a nonzero exit status if any structural, chain, inverse, or
+symplectic identity fails:
 
 ```bash
-sage -n jupyter
+sage scripts/decoupling/reproduce_666_color_code.sage
+sage scripts/decoupling/reproduce_488_color_code.sage
+sage scripts/decoupling/reproduce_bb_codes.sage
 ```
 
-The 6.6.6 and BB notebooks start from two Laurent generators. The 4.8.8
-notebook demonstrates the full-matrix API and an explicitly chosen oblique
-coarse cell.
-
-## Tests and reproduction
-
-Run pure-Python tests from this directory:
+The shared BB catalog contains all 30 rows from the
+`f=1+x+a, g=1+y+b` table and all 29 rows from the arbitrary-polynomial table.
+The default publication run validates the 56 rows whose paper runtimes are
+shorter than `benchmark-19`, plus `benchmark-19` itself as the cutoff
+reference. Only the two longer rows, `benchmark-29` and `table-17`, are skipped
+by default; either remains available through an explicit row selector. The
+runner supports stable selectors, atomic checkpoints, resume, retries, and
+optional positive timeouts:
 
 ```bash
-for test in tests/python/test_*.py; do sage -python "$test" || exit 1; done
+sage scripts/decoupling/reproduce_bb_codes.sage \
+  --rows benchmark-01,table-03
+
+sage scripts/decoupling/reproduce_bb_codes.sage \
+  --resume --retry-failed --retries 1
 ```
 
-Run Sage tests from each test directory so `_bootstrap.py` is importable:
+Selected-row runs use `bb_codes.selection.*` filenames and never overwrite the
+canonical 57-row cutoff-qualified result. In-progress resume data are kept in
+a private atomic checkpoint; canonical JSON, CSV, and Markdown files are
+published only after every selected row passes.
+
+Canonical JSON, CSV, and Markdown outputs are written under
+`results/decoupling/`. They record actual local runtime and
+`deg(psi_1_inverse)`; paper timing is intentionally omitted. Chain
+isomorphisms are non-unique, so validation uses mathematical identities rather
+than entry-by-entry agreement with printed matrices.
+
+The explanatory notebooks consume the complete shared catalog and canonical
+validated-subset results:
+
+- [6.6.6 color code](results/decoupling/666_color_code.ipynb)
+- [4.8.8 color code](results/decoupling/488_color_code.ipynb)
+- [BB-code catalog and validated subset](results/decoupling/bb_code_instances.ipynb)
+
+The decoder comparison uses
+`H_X=(1+x+x^-1*y, 1+y+x*y)`, distances 4 and 6, error probabilities
+0.01, 0.03, 0.05, 0.07, and 0.10, 100,000 shots per point, and seed 20260607:
 
 ```bash
-cd tests/sage/core
-for test in test_*.sage; do sage "$test" || exit 1; done
-
-cd ../iso
-for test in test_*.sage; do sage "$test" || exit 1; done
-
-cd ../unitary
-for test in test_*.sage; do sage "$test" || exit 1; done
+sage scripts/unitary_decouple_based_decoder/benchmark_paper_bb_family.sage
 ```
 
-`scripts/iso/validate_bb_instances.sage` validates the BB instances.
-`scripts/unitary/` contains the baseline decoder comparison entry points.
-Small generated summaries are under `results/`.
+Its CSV, Markdown, and plot are written under
+`results/unitary_decouple_based_decoder/`.
 
 ## Authorship and license
 
-Python/SageMath code in this directory was written by Mingxin He. The release
-repository is licensed under the MIT license; see the repository root
+The Python/SageMath implementation was written by Mingxin He. This public
+repository is distributed under the MIT license; see the repository root
 `LICENSE` and `CITATION.cff`.

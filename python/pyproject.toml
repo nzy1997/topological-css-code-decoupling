@@ -3,9 +3,9 @@ requires = ["setuptools>=61"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "sage-decoder-decoupling"
-version = "0.1.0"
-description = "SageMath decoupling maps and a baseline decoder for translational CSS codes."
+name = "decoupling-2d-topological-css-codes"
+version = "0.2.0"
+description = "SageMath decoupling unitary and decoder for translational topological CSS codes."
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
@@ -36,7 +36,11 @@ test = [
 [tool.setuptools.packages.find]
 include = [
   "decoder_core",
-  "isomorphism",
-  "isomorphism.*",
-  "unitary_decouple_decoder",
+  "decoupling",
+  "decoupling.*",
+  "unitary_decouple_based_decoder",
+]
+exclude = [
+  "color_code_decoders*",
+  "dense_toric_matching_decoder*",
 ]

@@ -5,16 +5,8 @@ from sage.all import GF, vector
 from .arrays import to_numpy_uint8
 
 
-def require_bposd():
-    """Import and return the BPOSD decoder class with a clear error.
-
-    Args:
-        None.
-
-    Returns:
-        object: Constructed object or imported class described by the function summary.
-    """
-    # Reject invalid inputs early so downstream algebra sees canonical data.
+def require_bp_osd():
+    """Import and return the BP-OSD decoder class with a clear error."""
     try:
         from ldpc import BpOsdDecoder
     except ImportError as exc:
@@ -22,8 +14,8 @@ def require_bposd():
     return BpOsdDecoder
 
 
-def bposd_decoder(
-    hx_numpy,
+def bp_osd_decoder(
+    h_x_numpy,
     p,
     max_iter,
     osd_order,
@@ -34,7 +26,7 @@ def bposd_decoder(
     """Construct one ``ldpc.BpOsdDecoder`` with Python-native numeric args.
 
     Args:
-        hx_numpy: NumPy representation of the X-check matrix.
+        h_x_numpy: NumPy representation of the X-check matrix.
         p: Physical error probability.
         max_iter: Maximum number of BP iterations.
         osd_order: Ordered-statistics decoding order for BPOSD.
@@ -42,15 +34,14 @@ def bposd_decoder(
         ms_scaling_factor: Minimum-sum BP scaling factor.
 
     Returns:
-        object: Construct one ``ldpc.BpOsdDecoder`` with Python-native numeric args.
+        object: Configured ``ldpc.BpOsdDecoder`` instance.
 
     Example:
-        decoder = bposd_decoder(hx_numpy, 0.01, max_iter=50, osd_order=2)
+        decoder = bp_osd_decoder(h_x_numpy, 0.01, max_iter=50, osd_order=2)
     """
-    # Keep syndrome normalization separate from the matching solve.
-    BpOsdDecoder = require_bposd()
+    BpOsdDecoder = require_bp_osd()
     return BpOsdDecoder(
-        hx_numpy,
+        h_x_numpy,
         error_rate=float(p),
         max_iter=int(max_iter),
         bp_method=bp_method,
@@ -60,17 +51,16 @@ def bposd_decoder(
     )
 
 
-def decode_with_bposd(decoder, syndrome):
+def decode_with_bp_osd(decoder, syndrome):
     """Decode a syndrome with BPOSD and return a Sage GF(2) vector.
 
     Args:
-        decoder: Decoder instance that provides finite maps, target metadata, or LDPC state.
-        syndrome: GF(2) syndrome vector to decode or classify.
+        decoder: Configured ``ldpc.BpOsdDecoder``.
+        syndrome: GF(2) syndrome vector to decode.
 
     Returns:
         vector: GF(2) correction vector in the relevant finite layout.
 
     """
-    # Normalize inputs before running the decoding pipeline.
     decoded = decoder.decode(to_numpy_uint8(syndrome))
     return vector(GF(2), [int(value) for value in decoded])

@@ -9,15 +9,7 @@ from sage.env import SAGE_VERSION
 
 
 def source_revision(source_root):
-    """Return the Git revision for one source tree.
-
-    Args:
-        source_root: Repository root used when collecting benchmark metadata.
-
-    Returns:
-        object: The Git revision for one source tree.
-    """
-    # Keep syndrome normalization separate from the matching solve.
+    """Return the Git revision containing the source tree."""
     resolved_root = str(Path(source_root).resolve())
     completed = subprocess.run(
         ["git", "-C", resolved_root, "rev-parse", "HEAD"],
@@ -26,6 +18,27 @@ def source_revision(source_root):
         text=True,
     )
     return completed.stdout.strip()
+
+
+def source_tree_dirty(source_root):
+    """Return whether tracked files under the source root have local changes."""
+    resolved_root = str(Path(source_root).resolve())
+    completed = subprocess.run(
+        [
+            "git",
+            "-C",
+            resolved_root,
+            "status",
+            "--porcelain",
+            "--untracked-files=no",
+            "--",
+            ".",
+        ],
+        capture_output=True,
+        check=True,
+        text=True,
+    )
+    return bool(completed.stdout.strip())
 
 
 def runtime_metadata(*, adapter, suite, source_root):
@@ -37,15 +50,15 @@ def runtime_metadata(*, adapter, suite, source_root):
         source_root: Repository root used when collecting benchmark metadata.
 
     Returns:
-        float: Metadata needed to interpret one result file.
+        dict: Environment and source metadata for one result file.
     """
-    # Keep syndrome normalization separate from the matching solve.
     resolved_root = str(Path(source_root).resolve())
     return {
         "adapter": adapter,
         "suite": suite,
         "source_root": resolved_root,
         "source_revision": source_revision(resolved_root),
+        "source_tree_dirty": source_tree_dirty(resolved_root),
         "sage_version": SAGE_VERSION,
         "python_version": sys.version.split()[0],
         "platform": platform.platform(),
