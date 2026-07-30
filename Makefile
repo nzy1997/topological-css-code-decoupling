@@ -10,6 +10,8 @@ check-julia-env:
 test-python:
 	cd python && $(SAGE) -pip install -e '.[test]'
 	cd python && $(SAGE) -python -m compileall -q decoder_core decoupling unitary_decouple_based_decoder
+	cd python && for test in tests/sage/decoupling/test_*.sage tests/sage/unitary/test_*.sage; do $(SAGE) "$$test" || exit 1; done
+	cd python && $(SAGE) scripts/unitary_decouple_based_decoder/benchmark_paper_bb_family.sage --smoke
 	cd python && $(SAGE) -c 'import decoder_core, decoupling, unitary_decouple_based_decoder'
 
 test-julia:

@@ -4,9 +4,11 @@ from sage.all import GF, vector
 
 from decoder_core import TorusShape
 from decoder_core.finite_maps import finite_matrix_from_laurent, zero_vector
+from decoder_core.logical import LogicalFailureClassifier, classify_attempt
 from decoder_core.validation import sample_bsc_error
 from decoupling import (
     R,
+    dagger_matrix,
     choose_minimal_area_superlattice_basis,
     build_two_generator_css_excitation_map,
     solve_decoupling_unitary,
@@ -59,7 +61,7 @@ class UnitaryDecoupleBasedDecoder:
                 "input_excitation_map column count must equal 2 * num_qubits."
             )
 
-        _h_z_input, self.h_x_input = split_css_blocks(
+        self.h_z_input, self.h_x_input = split_css_blocks(
             self.input_excitation_map,
             self.num_x_checks,
             self.num_qubits,
@@ -80,6 +82,8 @@ class UnitaryDecoupleBasedDecoder:
             self.h_x_input,
             self.shape,
         )
+        self._h_z_dagger_input_finite = None
+        self._logical_failure_classifier = None
         self.psi_0_inverse_finite = finite_matrix_from_laurent(
             self.psi_inverse.psi_0_inverse,
             self.shape,
@@ -202,6 +206,26 @@ class UnitaryDecoupleBasedDecoder:
         """Return the finite source X-error length."""
         return self.num_qubits * self.shape.size
 
+    @property
+    def h_z_dagger_input_finite(self):
+        """Return the cached finite source ``H_Z^dagger`` matrix."""
+        if self._h_z_dagger_input_finite is None:
+            self._h_z_dagger_input_finite = finite_matrix_from_laurent(
+                dagger_matrix(self.h_z_input),
+                self.shape,
+            )
+        return self._h_z_dagger_input_finite
+
+    @property
+    def logical_failure_classifier(self):
+        """Return the cached source-code logical-failure classifier."""
+        if self._logical_failure_classifier is None:
+            self._logical_failure_classifier = LogicalFailureClassifier(
+                self.h_x_input_finite,
+                self.h_z_dagger_input_finite,
+            )
+        return self._logical_failure_classifier
+
     def zero_syndrome(self):
         """Return the zero finite source syndrome."""
         return zero_vector(self.num_x_checks, self.shape)
@@ -251,6 +275,39 @@ class UnitaryDecoupleBasedDecoder:
             == self.psi_0_inverse_finite * self.h_x_tilde_finite
         )
 
+    def decode_error(self, error, *, verify=True):
+        """Decode and classify one supplied finite source X error.
+
+        Args:
+            error: Source GF(2) X-error vector.
+            verify: Whether to verify the returned correction's syndrome.
+
+        Returns:
+            dict: Error, syndrome, correction, physical residual, classification,
+            and success fields.
+        """
+        source_error = self.correction_vector(error)
+        syndrome = self.syndrome(source_error)
+        correction = self.decode(syndrome, verify=verify)
+        residual = source_error + correction
+        logical_failure, decode_failure = classify_attempt(
+            self.h_x_input_finite,
+            self.logical_failure_classifier,
+            source_error,
+            syndrome,
+            correction,
+        )
+        return {
+            "error": source_error,
+            "syndrome": syndrome,
+            "correction": correction,
+            "residual": residual,
+            "residual_syndrome": self.syndrome(residual),
+            "logical_failure": logical_failure,
+            "decode_failure": decode_failure,
+            "success": not logical_failure and not decode_failure,
+        }
+
     def decode_sample(self, p, *, verify=True):
         """Sample and decode one BSC error.
 
@@ -259,18 +316,10 @@ class UnitaryDecoupleBasedDecoder:
             verify: Whether to verify the returned correction's syndrome.
 
         Returns:
-            dict: Error, syndrome, correction, residual, and success fields.
+            dict: Error, syndrome, correction, physical residual,
+            classification, and success fields.
         """
-        error = self.sample_error(p)
-        syndrome = self.syndrome(error)
-        correction = self.decode(syndrome, verify=verify)
-        return {
-            "error": error,
-            "syndrome": syndrome,
-            "correction": correction,
-            "residual": self.syndrome(error + correction),
-            "success": self.syndrome(correction) == syndrome,
-        }
+        return self.decode_error(self.sample_error(p), verify=verify)
 
 
 def _binary_vector(values, expected, name):

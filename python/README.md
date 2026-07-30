@@ -28,6 +28,21 @@ adds `ldpc` and Matplotlib:
 sage -pip install -e '.[benchmark]'
 ```
 
+Install the test dependencies and run the public Sage checks with:
+
+```bash
+sage -pip install -e '.[test]'
+for test in tests/sage/decoupling/test_*.sage tests/sage/unitary/test_*.sage; do
+  sage "$test" || exit 1
+done
+sage scripts/unitary_decouple_based_decoder/benchmark_paper_bb_family.sage --smoke
+```
+
+The decoder tests distinguish syndrome consistency from logical success:
+the physical residual `error + correction` must lie in the source
+stabilizer span. The color-code certificate test independently verifies
+the literal 6.6.6 and 4.8.8 inverse chain maps printed in the supplement.
+
 ## Decoupling-unitary API
 
 For an input CSS chain
@@ -127,6 +142,12 @@ error[0] = 1
 syndrome = decoder.syndrome(error)
 correction = decoder.decode(syndrome, verify=True)
 assert decoder.syndrome(correction) == syndrome
+
+record = decoder.decode_error(error, verify=True)
+assert record["residual"] == error + record["correction"]
+assert record["success"] == (
+    not record["logical_failure"] and not record["decode_failure"]
+)
 ```
 
 Finite vectors use component-major ordering. Syndrome transport uses
