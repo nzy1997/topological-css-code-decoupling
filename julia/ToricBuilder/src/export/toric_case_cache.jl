@@ -238,12 +238,12 @@ function _migrate_v2_payload_to_decoupled(payload)
     )
     if !isnothing(transfer_result)
         canonical_payload["transfer_result"] = _serialization_safe_value(
-            _rename_namedtuple_fields(transfer_result, V2_TRANSFER_RESULT_FIELD_RENAMES),
+            _canonical_cache_write_value(transfer_result, V2_TRANSFER_RESULT_FIELD_RENAMES),
         )
     end
     if !isnothing(debug_result)
         canonical_payload["debug_result"] = _serialization_safe_value(
-            _rename_namedtuple_fields(debug_result, V2_DEBUG_RESULT_FIELD_RENAMES),
+            _canonical_cache_write_value(debug_result, V2_DEBUG_RESULT_FIELD_RENAMES),
         )
     end
     return _decoupled_toric_case_from_payload(canonical_payload)

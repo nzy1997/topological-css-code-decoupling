@@ -334,6 +334,39 @@ end
     end
 end
 
+@testset "load_decoupled_toric_case migrates v2 dictionary fields" begin
+    mktempdir() do tmpdir
+        path = joinpath(tmpdir, "v2_dict_case.jls")
+        Oscar.save(path, Dict{String, Any}(
+            "format_version" => 2,
+            "case_id" => "v2_dict_case",
+            "status" => :ok,
+            "metadata" => Dict{String, Any}(),
+            "poly_vec" => String[],
+            "transfer_result" => Dict{String, Any}(
+                "phi_1" => "inverse map",
+                "phi_1_inv" => "forward map",
+            ),
+            "debug_result" => Dict{String, Any}(
+                "phi_1" => "debug inverse map",
+                "phi_1_inv" => "debug forward map",
+            ),
+            "created_at" => "0",
+            "runtime_info" => Dict{String, Any}(),
+        ))
+
+        migrated = load_decoupled_toric_case(path)
+        @test migrated.transfer_result["psi_1_inverse"] == "inverse map"
+        @test migrated.transfer_result["psi_1"] == "forward map"
+        @test !haskey(migrated.transfer_result, "phi_1")
+        @test !haskey(migrated.transfer_result, "phi_1_inv")
+        @test migrated.debug_result["psi_1_inverse"] == "debug inverse map"
+        @test migrated.debug_result["psi_1"] == "debug forward map"
+        @test !haskey(migrated.debug_result, "phi_1")
+        @test !haskey(migrated.debug_result, "phi_1_inv")
+    end
+end
+
 @testset "v1 failed partial cache migration preserves metrics" begin
     F = GF(2)
     Rxy, (x, y) = laurent_polynomial_ring(F, ["x", "y"])

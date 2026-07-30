@@ -13,7 +13,6 @@ if str(SOURCE_ROOT) not in sys.path:
 
 from decoder_core import (  # noqa: E402
     DecoderStats,
-    LogicalFailureClassifier,
     bp_osd_decoder,
     classify_attempt,
     decode_with_bp_osd,
@@ -25,7 +24,6 @@ from decoder_core import (  # noqa: E402
 from decoder_core.benchmark_metadata import runtime_metadata  # noqa: E402
 from decoupling import x, y  # noqa: E402
 from unitary_decouple_based_decoder import UnitaryDecoupleBasedDecoder  # noqa: E402
-from unitary_decouple_based_decoder.benchmarking import build_h_z_dagger_finite  # noqa: E402
 
 
 DEFAULT_DISTANCES = "4,6"
@@ -282,10 +280,7 @@ def run(args):
     rng = numpy_rng(args.seed)
     for distance in distances:
         decoder = build_decoder(distance)
-        classifier = LogicalFailureClassifier(
-            decoder.h_x_input_finite,
-            build_h_z_dagger_finite(decoder),
-        )
+        classifier = decoder.logical_failure_classifier
         h_x_numpy = to_numpy_uint8(decoder.h_x_input_finite)
         for probability in probabilities:
             bp_osd = bp_osd_decoder(

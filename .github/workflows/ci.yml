@@ -39,10 +39,21 @@ jobs:
               set -euo pipefail
               SAGE=/home/sage/sage/sage
               mkdir -p "$HOME" "$HOME/.sage"
+              apt-get update
+              apt-get install --yes --no-install-recommends git
+              git config --global --add safe.directory /workspace
+              git -C /workspace/python rev-parse HEAD
               cd python
               "$SAGE" -pip install --user -e ".[test]"
               "$SAGE" -python -m compileall -q \
                 decoder_core decoupling unitary_decouple_based_decoder
+              for test in \
+                tests/sage/decoupling/test_*.sage \
+                tests/sage/unitary/test_*.sage
+              do
+                "$SAGE" "$test"
+              done
+              "$SAGE" scripts/unitary_decouple_based_decoder/benchmark_paper_bb_family.sage --smoke
               "$SAGE" -c \
                 "import decoder_core, decoupling, unitary_decouple_based_decoder"
             '
