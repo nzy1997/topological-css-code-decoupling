@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import subprocess
 import sys
+import tomllib
 import unittest
 from pathlib import Path
 
@@ -48,6 +49,9 @@ class ReleaseMetadataTests(unittest.TestCase):
             "julia/ToricBuilder/results/decoding_benchmark.json",
             "julia/ToricBuilder/results/transported_cnot_support.json",
             "julia/ToricBuilder/example/scripts/transported_cnot_support.jl",
+            "python/tests/sage/decoupling/test_paper_color_code_matrices.sage",
+            "python/tests/sage/unitary/test_decoder_logical_failure.sage",
+            "python/tests/sage/unitary/test_decoder_subdistance_error.sage",
         )
         forbidden_paths = (
             "docs/release-checklist.md",
@@ -116,6 +120,19 @@ class ReleaseMetadataTests(unittest.TestCase):
         for dependency in ('"coverage>=7"', '"jupyter>=1"', '"nbconvert>=7"'):
             self.assertIn(dependency, python_metadata)
 
+    def test_python_ldpc_version_is_reproducible(self) -> None:
+        with (ROOT / "python" / "pyproject.toml").open("rb") as stream:
+            metadata = tomllib.load(stream)
+        extras = metadata["project"]["optional-dependencies"]
+
+        for group in ("benchmark", "test"):
+            ldpc_requirements = [
+                dependency
+                for dependency in extras[group]
+                if dependency.startswith("ldpc")
+            ]
+            self.assertEqual(["ldpc==2.4.1"], ldpc_requirements)
+
     def test_release_docs_do_not_keep_blocker_language(self) -> None:
         for path in (
             ROOT / "README.md",
@@ -153,6 +170,9 @@ class ReleaseMetadataTests(unittest.TestCase):
             "scripts/decoupling/reproduce_488_color_code.sage",
             "reproduce_bb_codes.sage --rows benchmark-01",
             "--output-json ../python-bb-benchmark-01.json",
+            "tests/sage/decoupling/test_*.sage",
+            "tests/sage/unitary/test_*.sage",
+            "benchmark_paper_bb_family.sage --smoke",
             "julia/ToricBuilder/example/scripts/color_code.jl",
             "main(list=ab_list1[1:1]",
             "plot_area_comparison.jl",
@@ -226,6 +246,9 @@ class ReleaseMetadataTests(unittest.TestCase):
             "Pkg.instantiate(; allow_autoprecomp=false)",
             'include("julia/ToricBuilder/test/runtests.jl")',
             "import decoder_core, decoupling, unitary_decouple_based_decoder",
+            "tests/sage/decoupling/test_*.sage",
+            "tests/sage/unitary/test_*.sage",
+            "benchmark_paper_bb_family.sage --smoke",
         ):
             self.assertIn(phrase, workflow)
 

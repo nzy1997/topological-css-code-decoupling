@@ -22,13 +22,13 @@ classifiers = [
 
 [project.optional-dependencies]
 benchmark = [
-  "ldpc>=2.2",
+  "ldpc==2.4.1",
   "matplotlib>=3.7",
 ]
 test = [
   "coverage>=7",
   "jupyter>=1",
-  "ldpc>=2.2",
+  "ldpc==2.4.1",
   "matplotlib>=3.7",
   "nbconvert>=7",
 ]
