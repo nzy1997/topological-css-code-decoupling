@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import subprocess
 import sys
+import tomllib
 import unittest
 from pathlib import Path
 
@@ -118,6 +119,19 @@ class ReleaseMetadataTests(unittest.TestCase):
 
         for dependency in ('"coverage>=7"', '"jupyter>=1"', '"nbconvert>=7"'):
             self.assertIn(dependency, python_metadata)
+
+    def test_python_ldpc_version_is_reproducible(self) -> None:
+        with (ROOT / "python" / "pyproject.toml").open("rb") as stream:
+            metadata = tomllib.load(stream)
+        extras = metadata["project"]["optional-dependencies"]
+
+        for group in ("benchmark", "test"):
+            ldpc_requirements = [
+                dependency
+                for dependency in extras[group]
+                if dependency.startswith("ldpc")
+            ]
+            self.assertEqual(["ldpc==2.4.1"], ldpc_requirements)
 
     def test_release_docs_do_not_keep_blocker_language(self) -> None:
         for path in (
