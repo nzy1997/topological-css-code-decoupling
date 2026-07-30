@@ -1,4 +1,4 @@
-| $f=1+x+...$ | $g=1+y+...$ | $L$ | $u$ | $v$ | Area | Matrix size after CG | Product state num | Toric num | Time(s) | Maximum_term_phi_1 | Maximum_degree_phi_1 | Maximum_term_phi_1_inv | Maximum_degree_phi_1_inv | Maximum_column_monomial_count_phi_1 | Maximum_column_monomial_count_phi_1_inv | Case ID |
+| $f=1+x+...$ | $g=1+y+...$ | $L$ | $u$ | $v$ | Area | Matrix size after CG | Product state num | Toric num | Time(s) | Maximum_term_psi_1_inverse | Maximum_degree_psi_1_inverse | Maximum_term_psi_1 | Maximum_degree_psi_1 | Maximum_column_monomial_count_psi_1_inverse | Maximum_column_monomial_count_psi_1 | Case ID |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 | $x \cdot y$ | $x \cdot y$ | $3$ | $x \cdot y^{2}$ | $x^{2} \cdot y$ | 3.0 | (6, 12) | 1 | 2 | 0.014 | $x^{3} \cdot y^{3}$ | 6 | - | - | 11 | - | case_001 |
 | $x^{-1} \cdot y$ | $x \cdot y$ | $7$ | $x^{2} \cdot y^{3}$ | $x^{3} \cdot y$ | 7.0 | (14, 28) | 4 | 3 | 0.143 | $x^{5} \cdot y^{4}$ | 9 | - | - | 8 | - | case_002 |

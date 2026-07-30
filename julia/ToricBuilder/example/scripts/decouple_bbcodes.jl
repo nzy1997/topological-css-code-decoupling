@@ -98,7 +98,7 @@ function _markdown_row_from_decoupled_case(a, b, decoupled_case::DecoupledToricC
     l_val = isnothing(result) ? "-" : get(result, :l, "-")
     solving_time = isnothing(result) ? "-" : round(get(result, :solving_time, 0.0), digits=3)
 
-    return "| $(fmt_math(a)) | $(fmt_math(b)) | $(fmt_math(l_val)) | $(fmt_math(_result_value(result, :u_rel))) | $(fmt_math(_result_value(result, :v_rel))) | $(fmt_cell(_result_value(result, :area))) | $(fmt_cell(_result_value(result, :A_size))) | $(fmt_cell(_result_value(result, :product_state_num))) | $(fmt_cell(_result_value(result, :toric_num))) | $(fmt_cell(solving_time)) | $(fmt_math(_result_value(result, :max_ele_phi_1))) | $(fmt_cell(_result_value(result, :max_degree_phi_1))) | $(fmt_math(_result_value(result, :max_ele_phi_1_inv))) | $(fmt_cell(_result_value(result, :max_degree_phi_1_inv))) | $(fmt_cell(_result_value(result, :max_column_monomial_count_phi_1))) | $(fmt_cell(_result_value(result, :max_column_monomial_count_phi_1_inv))) | $(fmt_cell(decoupled_case.case_id)) |"
+    return "| $(fmt_math(a)) | $(fmt_math(b)) | $(fmt_math(l_val)) | $(fmt_math(_result_value(result, :u_rel))) | $(fmt_math(_result_value(result, :v_rel))) | $(fmt_cell(_result_value(result, :area))) | $(fmt_cell(_result_value(result, :A_size))) | $(fmt_cell(_result_value(result, :product_state_num))) | $(fmt_cell(_result_value(result, :toric_num))) | $(fmt_cell(solving_time)) | $(fmt_math(_result_value(result, :max_ele_psi_1_inverse))) | $(fmt_cell(_result_value(result, :max_degree_psi_1_inverse))) | $(fmt_math(_result_value(result, :max_ele_psi_1))) | $(fmt_cell(_result_value(result, :max_degree_psi_1))) | $(fmt_cell(_result_value(result, :max_column_monomial_count_psi_1_inverse))) | $(fmt_cell(_result_value(result, :max_column_monomial_count_psi_1))) | $(fmt_cell(decoupled_case.case_id)) |"
 end
 
 function _result_value(result, key)
@@ -153,8 +153,8 @@ function _decoupled_cache_satisfies_request(decoupled_case::DecoupledToricCase; 
 
     result = decoupled_case.transfer_result
     return !isnothing(result) &&
-           hasproperty(result, :phi_1_inv) &&
-           !isnothing(result.phi_1_inv) &&
+           hasproperty(result, :psi_1) &&
+           !isnothing(result.psi_1) &&
            hasproperty(result, :column_transformation) &&
            !isnothing(result.column_transformation)
 end
@@ -204,7 +204,7 @@ end
 function run_and_save(
     list;
     results_path=joinpath(dirname(dirname(dirname(dirname(@__DIR__)))), "build", "reproduction", "bb_code_decoupling_results.md"),
-    cache_dir=joinpath(dirname(dirname(dirname(dirname(@__DIR__)))), "build", "reproduction", "decouple_bbcodes_cache_v2"),
+    cache_dir=joinpath(dirname(dirname(dirname(dirname(@__DIR__)))), "build", "reproduction", "decouple_bbcodes_cache_v3"),
     overwrite::Bool=false,
     show_progress::Bool=false,
     compute_inverse::Bool=false,
@@ -233,7 +233,7 @@ function run_and_save(
     end
 
     open(results_path, "w") do io
-        println(io, "| \$f=1+x+...\$ | \$g=1+y+...\$ | \$L\$ | \$u\$ | \$v\$ | Area | Matrix size after CG | Product state num | Toric num | Time(s) | Maximum_term_phi_1 | Maximum_degree_phi_1 | Maximum_term_phi_1_inv | Maximum_degree_phi_1_inv | Maximum_column_monomial_count_phi_1 | Maximum_column_monomial_count_phi_1_inv | Case ID |")
+        println(io, "| \$f=1+x+...\$ | \$g=1+y+...\$ | \$L\$ | \$u\$ | \$v\$ | Area | Matrix size after CG | Product state num | Toric num | Time(s) | Maximum_term_psi_1_inverse | Maximum_degree_psi_1_inverse | Maximum_term_psi_1 | Maximum_degree_psi_1 | Maximum_column_monomial_count_psi_1_inverse | Maximum_column_monomial_count_psi_1 | Case ID |")
         println(io, "|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|")
 
         for (idx, (a, b)) in enumerate(list)

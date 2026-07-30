@@ -21,7 +21,7 @@ end
 @testset "transported CNOT published results" begin
     payload = JSON.parsefile(CNOT_RESULTS_PATH)
     @test payload["metadata"]["schema_version"] == 1
-    @test payload["metadata"]["transport_formula"] == "Q = phi_1 * E * phi_1_inv"
+    @test payload["metadata"]["transport_formula"] == "Q = psi_1_inverse * E * psi_1"
     @test length(payload["cases"]) == 6
     @test sum(length(case["measurements"]) for case in payload["cases"]) == 40
 

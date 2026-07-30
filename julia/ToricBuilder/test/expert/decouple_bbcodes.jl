@@ -5,7 +5,7 @@ using ToricBuilder
     script_path = joinpath(dirname(dirname(@__DIR__)), "example", "scripts", "decouple_bbcodes.jl")
     source = read(script_path, String)
     source = replace(source, r"\nrun_and_save\(ab_list3\)\s*$" => "\n")
-    @test occursin("\"decouple_bbcodes_cache_v2\"", source)
+    @test occursin("\"decouple_bbcodes_cache_v3\"", source)
     @test occursin("max_area::Int=2000", source)
     @test occursin("warmup::Bool=true", source)
     @test occursin("capture_debug::Bool=false", source)
@@ -32,12 +32,12 @@ using ToricBuilder
             product_state_num=6,
             toric_num=7,
             solving_time=1.2345,
-            max_ele_phi_1="x*y",
-            max_degree_phi_1=8,
-            max_ele_phi_1_inv=nothing,
-            max_degree_phi_1_inv=nothing,
-            max_column_monomial_count_phi_1=10,
-            max_column_monomial_count_phi_1_inv=nothing,
+            max_ele_psi_1_inverse="x*y",
+            max_degree_psi_1_inverse=8,
+            max_ele_psi_1=nothing,
+            max_degree_psi_1=nothing,
+            max_column_monomial_count_psi_1_inverse=10,
+            max_column_monomial_count_psi_1=nothing,
         ),
         nothing,
         "0",
@@ -50,7 +50,7 @@ using ToricBuilder
         :ok,
         Dict{String, Any}(),
         nothing,
-        (phi_1_inv=nothing, column_transformation=nothing),
+        (psi_1=nothing, column_transformation=nothing),
         nothing,
         "0",
         Dict{String, Any}(),
@@ -61,7 +61,7 @@ using ToricBuilder
         :ok,
         Dict{String, Any}(),
         nothing,
-        (phi_1_inv=:phi_1_inv, column_transformation=:column_transformation),
+        (psi_1=:psi_1, column_transformation=:column_transformation),
         nothing,
         "0",
         Dict{String, Any}(),
@@ -76,7 +76,7 @@ using ToricBuilder
         cache_path = joinpath(tmpdir, "case_001.jls")
         poly_vector = [1 + getfield(harness, :x) + getfield(harness, :x) * getfield(harness, :y), 1 + getfield(harness, :y) + getfield(harness, :x) * getfield(harness, :y)]
         default_case = ToricBuilder.build_decoupled_toric_case("case_001", poly_vector; show_progress=false)
-        @test default_case.transfer_result.phi_1_inv === nothing
+        @test default_case.transfer_result.psi_1 === nothing
         ToricBuilder.save_decoupled_toric_case(cache_path, default_case)
 
         reused_case = getfield(harness, :_load_or_build_decoupled_case)(
@@ -89,8 +89,8 @@ using ToricBuilder
             compute_inverse=true,
         )
 
-        @test reused_case.transfer_result.phi_1_inv === nothing
-        @test ToricBuilder.load_decoupled_toric_case(cache_path).transfer_result.phi_1_inv === nothing
+        @test reused_case.transfer_result.psi_1 === nothing
+        @test ToricBuilder.load_decoupled_toric_case(cache_path).transfer_result.psi_1 === nothing
 
         refreshed_case = getfield(harness, :_load_or_build_decoupled_case)(
             "case_001",
@@ -103,8 +103,8 @@ using ToricBuilder
             check_cache=true,
         )
 
-        @test !isnothing(refreshed_case.transfer_result.phi_1_inv)
-        @test !isnothing(ToricBuilder.load_decoupled_toric_case(cache_path).transfer_result.phi_1_inv)
+        @test !isnothing(refreshed_case.transfer_result.psi_1)
+        @test !isnothing(ToricBuilder.load_decoupled_toric_case(cache_path).transfer_result.psi_1)
     end
 
     Core.eval(harness, quote
@@ -134,8 +134,8 @@ using ToricBuilder
         @test getfield(harness, :warmup_show_progress)[] === false
         @test length(lines) == 3
         @test occursin("Case ID", lines[1])
-        @test occursin("Maximum_term_phi_1", lines[1])
-        @test occursin("Maximum_term_phi_1_inv", lines[1])
+        @test occursin("Maximum_term_psi_1_inverse", lines[1])
+        @test occursin("Maximum_term_psi_1", lines[1])
         @test !occursin("Maximum_term_Q", lines[1])
         @test endswith(lines[2], "|---|")
         @test occursin("| case_001 |", lines[3])

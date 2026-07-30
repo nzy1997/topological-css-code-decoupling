@@ -1,4 +1,4 @@
-| Code | Definition / decouple input | $L$ | $u$ | $v$ | Area | Matrix size after CG | Product state num | Toric num | Time(s) | Maximum_term_phi_1 | Maximum_degree_phi_1 | Maximum_term_phi_1_inv | Maximum_degree_phi_1_inv | Maximum_column_monomial_count_phi_1 | Maximum_column_monomial_count_phi_1_inv | Case ID |
+| Code | Definition / decouple input | $L$ | $u$ | $v$ | Area | Matrix size after CG | Product state num | Toric num | Time(s) | Maximum_term_psi_1_inverse | Maximum_degree_psi_1_inverse | Maximum_term_psi_1 | Maximum_degree_psi_1 | Maximum_column_monomial_count_psi_1_inverse | Maximum_column_monomial_count_psi_1 | Case ID |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 | arXiv:2606.22853 [[12,2,3]] l=3 m=2 Hexagon | source polynomial pair:<br>$x + 1$<br>$x + y$ | $1$ | $y$ | $x$ | 1.0 | (2, 4) | 0 | 1 | 0.012 | $1$ | 0 | - | - | 2 | - | bunny_001 |
 | arXiv:2606.22853 [[10,2,3]] l=1 m=5 Square | source polynomial pair:<br>$x + y^{2}$<br>$y^{2} + y$ | $1$ | $y$ | $x$ | 1.0 | (2, 4) | 0 | 1 | 0.106 | $x^{-1} \cdot y + x^{-1}$ | 2 | - | - | 5 | - | bunny_005 |
