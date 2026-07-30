@@ -69,6 +69,8 @@ class ReleaseMetadataTests(unittest.TestCase):
             "python/results/unitary_decouple_decoder/color_666_unitary_vs_bposd.csv",
             "python/results/unitary_decouple_decoder/color_666_unitary_vs_bposd.md",
             "python/results/unitary_decouple_decoder/color_666_unitary_vs_bposd.png",
+            "python/isomorphism",
+            "python/unitary_decouple_decoder",
         )
 
         for path in required_paths:
@@ -147,10 +149,10 @@ class ReleaseMetadataTests(unittest.TestCase):
             self.assertIn(f"{target}:", makefile)
 
         for command in (
-            "results/isomorphism/666_color_code.ipynb",
-            "results/isomorphism/488_color_code.ipynb",
-            "--output-dir ../build/reproduction",
-            "validate_bb_instances.sage --rows 1 --qca-check skip",
+            "scripts/decoupling/reproduce_666_color_code.sage",
+            "scripts/decoupling/reproduce_488_color_code.sage",
+            "reproduce_bb_codes.sage --rows benchmark-01",
+            "--output-json ../build/reproduction/python-bb-benchmark-01.json",
             "julia/ToricBuilder/example/scripts/color_code.jl",
             "main(list=ab_list1[1:1]",
             "plot_area_comparison.jl",
@@ -164,9 +166,10 @@ class ReleaseMetadataTests(unittest.TestCase):
         reproduction = (ROOT / "docs" / "reproduction.md").read_text(encoding="utf-8")
 
         required_paths = (
-            "python/results/isomorphism/666_color_code.ipynb",
-            "python/results/isomorphism/488_color_code.ipynb",
-            "python/scripts/iso/validate_bb_instances.sage",
+            "python/results/decoupling/666_color_code.ipynb",
+            "python/results/decoupling/488_color_code.ipynb",
+            "python/scripts/decoupling/reproduce_bb_codes.sage",
+            "python/scripts/unitary_decouple_based_decoder/benchmark_paper_bb_family.sage",
             "julia/ToricBuilder/example/scripts/color_code.jl",
             "julia/ToricBuilder/example/scripts/decouple_bbcodes.jl",
             "julia/ToricBuilder/example/scripts/decouple_additional_bb_codes.jl",
@@ -207,7 +210,7 @@ class ReleaseMetadataTests(unittest.TestCase):
             "Instantiate and test Julia project",
             "Pkg.instantiate(; allow_autoprecomp=false)",
             'include("julia/ToricBuilder/test/runtests.jl")',
-            "coverage run --append --source=decoder_core,isomorphism,unitary_decouple_decoder",
+            "import decoder_core, decoupling, unitary_decouple_based_decoder",
             "codecov/codecov-action@v5",
             "flags: python",
             "token: ${{ secrets.CODECOV_TOKEN }}",

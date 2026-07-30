@@ -26,7 +26,14 @@ def tracked_paths() -> set[str]:
 
 class ReleaseManifestTests(unittest.TestCase):
     def test_exported_source_layout_is_present(self) -> None:
-        self.assertTrue((ROOT / "python" / "isomorphism").is_dir())
+        for package in (
+            "decoder_core",
+            "decoupling",
+            "unitary_decouple_based_decoder",
+        ):
+            self.assertTrue((ROOT / "python" / package).is_dir())
+        self.assertFalse((ROOT / "python" / "isomorphism").exists())
+        self.assertFalse((ROOT / "python" / "unitary_decouple_decoder").exists())
         self.assertTrue((ROOT / "julia" / "ToricBuilder" / "src").is_dir())
 
     def test_exported_tree_excludes_private_artifacts(self) -> None:

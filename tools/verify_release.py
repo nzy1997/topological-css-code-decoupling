@@ -13,9 +13,12 @@ FORBIDDEN_PATH_PARTS = (
     "docs/superpowers",
     "skills",
     "python/RELEASE_BLOCKERS.md",
+    "python/.decoupling-public-release",
     "python/.sage-decoder-public-release",
     "python/CITATION.cff",
     "python/MANIFEST.sha256",
+    "python/isomorphism",
+    "python/unitary_decouple_decoder",
     "julia/ToricBuilder/docs/plans",
     "julia/ToricBuilder/example/testing_case_cache",
     "julia/ToricBuilder/example/reference/results_macmini.md",
@@ -73,9 +76,9 @@ FORBIDDEN_BYTES = (
 )
 
 REQUIRED_DIRS = (
-    "python/isomorphism",
     "python/decoder_core",
-    "python/unitary_decouple_decoder",
+    "python/decoupling",
+    "python/unitary_decouple_based_decoder",
     "julia/ToricBuilder/src",
     "julia/ToricBuilder/results",
 )
