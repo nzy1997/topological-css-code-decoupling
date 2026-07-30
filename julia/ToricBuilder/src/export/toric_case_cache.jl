@@ -1,4 +1,4 @@
-const DECOUPLED_TORIC_CASE_FORMAT_VERSION = 2
+const DECOUPLED_TORIC_CASE_FORMAT_VERSION = 3
 const REQUIRED_DECOUPLED_TRANSFER_RESULT_FIELDS = (
     :input_matrix,
     :input_blocks,
@@ -6,7 +6,26 @@ const REQUIRED_DECOUPLED_TRANSFER_RESULT_FIELDS = (
     :standard_blocks,
     :row_transformation,
     :row_blocks,
-    :phi_1,
+    :psi_1_inverse,
+)
+
+const V2_TRANSFER_RESULT_FIELD_RENAMES = Dict(
+    :phi_1 => :psi_1_inverse,
+    :phi_1_inv => :psi_1,
+    :phi_1_size => :psi_1_inverse_size,
+    :phi_1_original => :psi_1_inverse_original,
+    :phi_1_inv_original => :psi_1_original,
+    :max_ele_phi_1 => :max_ele_psi_1_inverse,
+    :max_degree_phi_1 => :max_degree_psi_1_inverse,
+    :max_column_monomial_count_phi_1 => :max_column_monomial_count_psi_1_inverse,
+    :max_ele_phi_1_inv => :max_ele_psi_1,
+    :max_degree_phi_1_inv => :max_degree_psi_1,
+    :max_column_monomial_count_phi_1_inv => :max_column_monomial_count_psi_1,
+)
+
+const V2_DEBUG_RESULT_FIELD_RENAMES = Dict(
+    :phi_1 => :psi_1_inverse,
+    :phi_1_inv => :psi_1,
 )
 
 const REQUIRED_V1_FULL_TRANSFER_RESULT_FIELDS = (
@@ -132,13 +151,7 @@ end
 
 function load_decoupled_toric_case(path::AbstractString)
     payload = Oscar.load(path)
-    decoupled_case = _decoupled_toric_case_from_payload(payload)
-    if decoupled_case.format_version != DECOUPLED_TORIC_CASE_FORMAT_VERSION
-        throw(ArgumentError(
-            "Unsupported DecoupledToricCase format version $(decoupled_case.format_version); run migrate_cached_toric_cases_to_decoupled to convert old cache files.",
-        ))
-    end
-    return decoupled_case
+    return _migrate_decoupled_toric_case_payload(payload)
 end
 
 function list_decoupled_toric_cases(dir::AbstractString)
@@ -166,12 +179,20 @@ function migrate_cached_toric_cases_to_decoupled(
     written = String[]
     for src_path in paths
         payload = Oscar.load(src_path)
-        decoupled_case = _migrate_v1_payload_to_decoupled(payload)
+        decoupled_case = _migrate_decoupled_toric_case_payload(payload)
         dst_path = decoupled_toric_case_path(dst_dir, decoupled_case.case_id)
         save_decoupled_toric_case(dst_path, decoupled_case; overwrite=overwrite)
         push!(written, dst_path)
     end
     return written
+end
+
+function _migrate_decoupled_toric_case_payload(payload)
+    version = Int(_payload_field(payload, :format_version))
+    version == 1 && return _migrate_v1_payload_to_decoupled(payload)
+    version == 2 && return _migrate_v2_payload_to_decoupled(payload)
+    version == 3 && return _decoupled_toric_case_from_payload(payload)
+    throw(ArgumentError("Unsupported DecoupledToricCase format version $version"))
 end
 
 function _migrate_v1_payload_to_decoupled(payload)
@@ -201,6 +222,33 @@ function _migrate_v1_payload_to_decoupled(payload)
     )
 end
 
+function _migrate_v2_payload_to_decoupled(payload)
+    version = Int(_payload_field(payload, :format_version))
+    version == 2 || throw(ArgumentError("Expected v2 DecoupledToricCase payload, got format version $version"))
+    transfer_result = _restore_serialization_safe_value(_payload_field_or(payload, :transfer_result, nothing))
+    debug_result = _restore_serialization_safe_value(_payload_field_or(payload, :debug_result, nothing))
+    canonical_payload = Dict{String, Any}(
+        "format_version" => DECOUPLED_TORIC_CASE_FORMAT_VERSION,
+        "case_id" => _payload_field(payload, :case_id),
+        "status" => _payload_field(payload, :status),
+        "metadata" => _payload_field(payload, :metadata),
+        "poly_vec" => _payload_field(payload, :poly_vec),
+        "created_at" => _payload_field(payload, :created_at),
+        "runtime_info" => _payload_field(payload, :runtime_info),
+    )
+    if !isnothing(transfer_result)
+        canonical_payload["transfer_result"] = _serialization_safe_value(
+            _rename_namedtuple_fields(transfer_result, V2_TRANSFER_RESULT_FIELD_RENAMES),
+        )
+    end
+    if !isnothing(debug_result)
+        canonical_payload["debug_result"] = _serialization_safe_value(
+            _rename_namedtuple_fields(debug_result, V2_DEBUG_RESULT_FIELD_RENAMES),
+        )
+    end
+    return _decoupled_toric_case_from_payload(canonical_payload)
+end
+
 function _has_v1_full_transfer_result(old)
     for field in REQUIRED_V1_FULL_TRANSFER_RESULT_FIELDS
         if !hasproperty(old, field) || isnothing(getproperty(old, field))
@@ -217,8 +265,8 @@ function _migrate_v1_transfer_result(old)
     column_transformation = old.column_transformation
     stab_num = size(input_matrix, 1) ÷ 2
     qubit_num = size(input_matrix, 2) ÷ 2
-    phi_1 = column_transformation[1:qubit_num, 1:qubit_num]
-    phi_1_inv = _dagger_laurent_matrix(column_transformation[qubit_num+1:2*qubit_num, qubit_num+1:2*qubit_num])
+    psi_1_inverse = column_transformation[1:qubit_num, 1:qubit_num]
+    psi_1 = _dagger_laurent_matrix(column_transformation[qubit_num+1:2*qubit_num, qubit_num+1:2*qubit_num])
     return (;
         input_matrix=input_matrix,
         input_blocks=(
@@ -235,8 +283,8 @@ function _migrate_v1_transfer_result(old)
             Hz=row_transformation[1:stab_num, 1:stab_num],
             Hx=row_transformation[stab_num+1:2*stab_num, stab_num+1:2*stab_num],
         ),
-        phi_1=phi_1,
-        phi_1_inv=phi_1_inv,
+        psi_1_inverse=psi_1_inverse,
+        psi_1=psi_1,
         column_transformation=column_transformation,
         product_state_num=old.product_state_num,
         toric_num=old.toric_num,
@@ -246,13 +294,13 @@ function _migrate_v1_transfer_result(old)
         v_rel=get(old, :v_rel, nothing),
         solving_time=get(old, :solving_time, nothing),
         A_size=get(old, :A_size, size(input_matrix)),
-        phi_1_size=size(phi_1),
-        max_ele_phi_1=get(old, :max_eleQ, nothing),
-        max_degree_phi_1=get(old, :max_degreeQ, nothing),
-        max_column_monomial_count_phi_1=get(old, :max_column_monomial_countQ, nothing),
-        max_ele_phi_1_inv=get(old, :max_eleQinv, nothing),
-        max_degree_phi_1_inv=get(old, :max_degreeQinv, nothing),
-        max_column_monomial_count_phi_1_inv=get(old, :max_column_monomial_countQinv, nothing),
+        psi_1_inverse_size=size(psi_1_inverse),
+        max_ele_psi_1_inverse=get(old, :max_eleQ, nothing),
+        max_degree_psi_1_inverse=get(old, :max_degreeQ, nothing),
+        max_column_monomial_count_psi_1_inverse=get(old, :max_column_monomial_countQ, nothing),
+        max_ele_psi_1=get(old, :max_eleQinv, nothing),
+        max_degree_psi_1=get(old, :max_degreeQinv, nothing),
+        max_column_monomial_count_psi_1=get(old, :max_column_monomial_countQinv, nothing),
     )
 end
 
@@ -264,8 +312,8 @@ function _migrate_v1_partial_transfer_result(old)
         standard_blocks=nothing,
         row_transformation=nothing,
         row_blocks=nothing,
-        phi_1=nothing,
-        phi_1_inv=nothing,
+        psi_1_inverse=nothing,
+        psi_1=nothing,
         column_transformation=nothing,
         product_state_num=get(old, :product_state_num, nothing),
         toric_num=get(old, :toric_num, nothing),
@@ -275,13 +323,13 @@ function _migrate_v1_partial_transfer_result(old)
         v_rel=get(old, :v_rel, nothing),
         solving_time=get(old, :solving_time, nothing),
         A_size=get(old, :A_size, nothing),
-        phi_1_size=get(old, :Q_size, nothing),
-        max_ele_phi_1=get(old, :max_eleQ, nothing),
-        max_degree_phi_1=get(old, :max_degreeQ, nothing),
-        max_column_monomial_count_phi_1=get(old, :max_column_monomial_countQ, nothing),
-        max_ele_phi_1_inv=get(old, :max_eleQinv, nothing),
-        max_degree_phi_1_inv=get(old, :max_degreeQinv, nothing),
-        max_column_monomial_count_phi_1_inv=get(old, :max_column_monomial_countQinv, nothing),
+        psi_1_inverse_size=get(old, :Q_size, nothing),
+        max_ele_psi_1_inverse=get(old, :max_eleQ, nothing),
+        max_degree_psi_1_inverse=get(old, :max_degreeQ, nothing),
+        max_column_monomial_count_psi_1_inverse=get(old, :max_column_monomial_countQ, nothing),
+        max_ele_psi_1=get(old, :max_eleQinv, nothing),
+        max_degree_psi_1=get(old, :max_degreeQinv, nothing),
+        max_column_monomial_count_psi_1=get(old, :max_column_monomial_countQinv, nothing),
     )
 end
 
@@ -292,8 +340,8 @@ function _migrate_v1_debug_result(old)
     column_transformation = old.column_transformation
     stab_num = size(input_matrix, 1) ÷ 2
     qubit_num = size(input_matrix, 2) ÷ 2
-    phi_1 = isnothing(column_transformation) ? nothing : column_transformation[1:qubit_num, 1:qubit_num]
-    phi_1_inv = isnothing(column_transformation) ? nothing : _dagger_laurent_matrix(column_transformation[qubit_num+1:2*qubit_num, qubit_num+1:2*qubit_num])
+    psi_1_inverse = isnothing(column_transformation) ? nothing : column_transformation[1:qubit_num, 1:qubit_num]
+    psi_1 = isnothing(column_transformation) ? nothing : _dagger_laurent_matrix(column_transformation[qubit_num+1:2*qubit_num, qubit_num+1:2*qubit_num])
     return (;
         input_matrix=input_matrix,
         em_matrix=old.em_matrix,
@@ -302,8 +350,8 @@ function _migrate_v1_debug_result(old)
             Hz=row_transformation[1:stab_num, 1:stab_num],
             Hx=row_transformation[stab_num+1:2*stab_num, stab_num+1:2*stab_num],
         ),
-        phi_1=phi_1,
-        phi_1_inv=phi_1_inv,
+        psi_1_inverse=psi_1_inverse,
+        psi_1=psi_1,
         column_transformation=column_transformation,
         standard_matrix=standard_matrix,
         standard_blocks=(
@@ -343,7 +391,7 @@ end
 
 function _decoupled_toric_case_payload(decoupled_case::DecoupledToricCase)
     payload = Dict{String, Any}(
-        "format_version" => decoupled_case.format_version,
+        "format_version" => DECOUPLED_TORIC_CASE_FORMAT_VERSION,
         "case_id" => decoupled_case.case_id,
         "status" => decoupled_case.status,
         "metadata" => _serialization_safe_value(decoupled_case.metadata),
@@ -408,6 +456,22 @@ function _serialization_safe_named_tuple(value::NamedTuple)
         "__field_order__" => string.(names),
         "__fields__" => fields,
     )
+end
+
+function _rename_namedtuple_fields(value::NamedTuple, renames::AbstractDict{Symbol, Symbol})
+    names = Symbol[]
+    values = Any[]
+    seen = Set{Symbol}()
+    for name in propertynames(value)
+        renamed = get(renames, name, name)
+        renamed in seen && throw(ArgumentError(
+            "Cannot rename cache field $name to $renamed because that field already exists",
+        ))
+        push!(seen, renamed)
+        push!(names, renamed)
+        push!(values, getproperty(value, name))
+    end
+    return NamedTuple{Tuple(names)}(Tuple(values))
 end
 
 function _decoupled_toric_case_from_payload(payload)
