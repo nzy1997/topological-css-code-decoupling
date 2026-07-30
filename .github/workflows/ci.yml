@@ -41,6 +41,8 @@ jobs:
               mkdir -p "$HOME" "$HOME/.sage"
               apt-get update
               apt-get install --yes --no-install-recommends git
+              git config --global --add safe.directory /workspace
+              git -C /workspace/python rev-parse HEAD
               cd python
               "$SAGE" -pip install --user -e ".[test]"
               "$SAGE" -python -m compileall -q \
