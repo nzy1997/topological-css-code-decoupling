@@ -39,6 +39,8 @@ jobs:
               set -euo pipefail
               SAGE=/home/sage/sage/sage
               mkdir -p "$HOME" "$HOME/.sage"
+              apt-get update
+              apt-get install --yes --no-install-recommends git
               cd python
               "$SAGE" -pip install --user -e ".[test]"
               "$SAGE" -python -m compileall -q \
