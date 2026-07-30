@@ -37,6 +37,36 @@ end
     end
 end
 
+@testset "color-code example prints a reproducible summary" begin
+    path = joinpath(SCRIPT_DIR, "color_code.jl")
+    script_mod = Module(:ColorCodeExample)
+    Base.include(script_mod, path)
+
+    output_text, result = mktemp() do _, output
+        result = redirect_stdout(output) do
+            Core.eval(script_mod, :(main()))
+        end
+        flush(output)
+        seekstart(output)
+        return read(output, String), result
+    end
+
+    @test result.l == 3
+    @test size(result.A_cg) == (18, 36)
+    @test result.result.product_state_num == 1
+    @test result.result.toric_num == 2
+    @test output_text == join(
+        (
+            "Color-code toric-form reproduction",
+            "period L: 3",
+            "coarse-grained matrix size: 18 x 36",
+            "decomposition: 1 product-state sector + 2 toric sectors",
+            "verification: ok",
+        ),
+        '\n',
+    ) * "\n"
+end
+
 @testset "exported example files match the release allowlist" begin
     tracked = tracked_example_files()
     if isnothing(tracked)

@@ -162,6 +162,21 @@ class ReleaseMetadataTests(unittest.TestCase):
             self.assertIn(command, makefile)
         self.assertNotIn("--inplace", makefile)
 
+    def test_julia_environment_check_instantiates_and_loads_oscar(self) -> None:
+        result = subprocess.run(
+            ["make", "-n", "check-julia-env"],
+            cwd=ROOT,
+            text=True,
+            capture_output=True,
+        )
+
+        self.assertEqual(0, result.returncode, result.stderr)
+        self.assertIn("--startup-file=no", result.stdout)
+        self.assertIn("--project=julia/ToricBuilder", result.stdout)
+        self.assertIn("Pkg.instantiate(; allow_autoprecomp=false)", result.stdout)
+        self.assertIn("using Oscar", result.stdout)
+        self.assertIn("Julia/Oscar environment: ok", result.stdout)
+
     def test_reproduction_docs_reference_existing_entrypoints(self) -> None:
         reproduction = (ROOT / "docs" / "reproduction.md").read_text(encoding="utf-8")
 

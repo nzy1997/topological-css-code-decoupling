@@ -2,7 +2,10 @@ PYTHON ?= python3
 SAGE ?= sage
 JULIA ?= julia
 
-.PHONY: test-python test-julia verify-manifest verify reproduce reproduce-full
+.PHONY: check-julia-env test-python test-julia verify-manifest verify reproduce reproduce-full
+
+check-julia-env:
+	$(JULIA) --startup-file=no --project=julia/ToricBuilder -e 'using Pkg; Pkg.instantiate(; allow_autoprecomp=false); using Oscar; println("Julia/Oscar environment: ok")'
 
 test-python:
 	cd python && $(SAGE) -pip install -e '.[test]'

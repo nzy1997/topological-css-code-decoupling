@@ -26,8 +26,13 @@ sage -pip install -e '.[test]'
 Julia/Oscar:
 
 ```bash
-julia --project=julia/ToricBuilder -e 'using Pkg; Pkg.instantiate()'
+make check-julia-env
 ```
+
+This installs the pinned Julia environment, loads Oscar, and prints
+`Julia/Oscar environment: ok`. See the troubleshooting section in
+[`docs/reproduction.md`](docs/reproduction.md) if a lazy GAP artifact is
+missing after installation.
 
 ## Verification
 
