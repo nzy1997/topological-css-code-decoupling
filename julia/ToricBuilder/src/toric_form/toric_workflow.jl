@@ -125,35 +125,35 @@ function build_toric_form(poly_vec::Vector; max_area=150, max_l=200, show_progre
 
     res = to_toric_form(A; show_progress=show_progress, compute_inverse=compute_inverse)
 
-    phi_1_original = replace_variable_inv_mat(
-        res.phi_1,
+    psi_1_inverse_original = replace_variable_inv_mat(
+        res.psi_1_inverse,
         [u_rel, v_rel],
         Rl,
         R_new,
         [x, y],
         [u, v],
     )
-    max_ele_phi_1, max_degree_phi_1 = maximum_deg_term(phi_1_original)
-    max_column_monomial_count_phi_1 = max_column_monomial_count(phi_1_original)
+    max_ele_psi_1_inverse, max_degree_psi_1_inverse = maximum_deg_term(psi_1_inverse_original)
+    max_column_monomial_count_psi_1_inverse = max_column_monomial_count(psi_1_inverse_original)
 
-    phi_1_inv_original = nothing
-    max_ele_phi_1_inv = nothing
-    max_degree_phi_1_inv = nothing
-    max_column_monomial_count_phi_1_inv = nothing
-    if !isnothing(res.phi_1_inv)
-        phi_1_inv_original = replace_variable_inv_mat(
-            res.phi_1_inv,
+    psi_1_original = nothing
+    max_ele_psi_1 = nothing
+    max_degree_psi_1 = nothing
+    max_column_monomial_count_psi_1 = nothing
+    if !isnothing(res.psi_1)
+        psi_1_original = replace_variable_inv_mat(
+            res.psi_1,
             [u_rel, v_rel],
             Rl,
             R_new,
             [x, y],
             [u, v],
         )
-        max_ele_phi_1_inv, max_degree_phi_1_inv = maximum_deg_term(phi_1_inv_original)
-        max_column_monomial_count_phi_1_inv = max_column_monomial_count(phi_1_inv_original)
+        max_ele_psi_1, max_degree_psi_1 = maximum_deg_term(psi_1_original)
+        max_column_monomial_count_psi_1 = max_column_monomial_count(psi_1_original)
     end
     if show_progress
-        @show max_column_monomial_count_phi_1 max_column_monomial_count_phi_1_inv
+        @show max_column_monomial_count_psi_1_inverse max_column_monomial_count_psi_1
     end
 
     return (;
@@ -164,15 +164,15 @@ function build_toric_form(poly_vec::Vector; max_area=150, max_l=200, show_progre
         u_rel=u_rel,
         solving_time=time() - t_start,
         A_size=size(A),
-        phi_1_size=size(res.phi_1),
-        phi_1_original=phi_1_original,
-        phi_1_inv_original=phi_1_inv_original,
-        max_ele_phi_1=max_ele_phi_1,
-        max_degree_phi_1=max_degree_phi_1,
-        max_column_monomial_count_phi_1=max_column_monomial_count_phi_1,
-        max_ele_phi_1_inv=max_ele_phi_1_inv,
-        max_degree_phi_1_inv=max_degree_phi_1_inv,
-        max_column_monomial_count_phi_1_inv=max_column_monomial_count_phi_1_inv,
+        psi_1_inverse_size=size(res.psi_1_inverse),
+        psi_1_inverse_original=psi_1_inverse_original,
+        psi_1_original=psi_1_original,
+        max_ele_psi_1_inverse=max_ele_psi_1_inverse,
+        max_degree_psi_1_inverse=max_degree_psi_1_inverse,
+        max_column_monomial_count_psi_1_inverse=max_column_monomial_count_psi_1_inverse,
+        max_ele_psi_1=max_ele_psi_1,
+        max_degree_psi_1=max_degree_psi_1,
+        max_column_monomial_count_psi_1=max_column_monomial_count_psi_1,
     )
 end
 

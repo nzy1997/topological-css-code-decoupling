@@ -16,15 +16,20 @@ using Oscar
     @test hasproperty(result, :row_transformation)
     @test hasproperty(result, :input_matrix)
     @test hasproperty(result, :standard_matrix)
-    @test hasproperty(result, :phi_1)
-    @test result.phi_1_inv === nothing
+    @test hasproperty(result, :psi_1_inverse)
+    @test result.psi_1 === nothing
+    @test !hasproperty(result, Symbol("ph", "i_1"))
+    @test !hasproperty(result, Symbol("ph", "i_1_inv"))
     @test result.column_transformation === nothing
     @test check_result(result, result.input_matrix)
     @test result.product_state_num == 1
     @test result.toric_num == 2
 
     full_result = build_toric_form(poly_vec; show_progress=false, compute_inverse=true)
-    @test !isnothing(full_result.phi_1_inv)
+    @test !isnothing(full_result.psi_1)
+    identity = identity_matrix(base_ring(full_result.psi_1_inverse), size(full_result.psi_1_inverse, 1))
+    @test full_result.psi_1_inverse * full_result.psi_1 == identity
+    @test full_result.psi_1 * full_result.psi_1_inverse == identity
     @test !isnothing(full_result.column_transformation)
     @test check_result(full_result, full_result.input_matrix; require_inverse=true)
     @test full_result.l == l

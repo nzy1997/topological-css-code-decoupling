@@ -91,7 +91,7 @@ end
         return read(output, String), result
     end
 
-    @test result.equation_Hz * result.phi_1 == result.Hzt
+    @test result.equation_Hz * result.psi_1_inverse == result.Hzt
     @test result.trace.input_stats == (max_degree=2, max_terms=2)
     @test result.trace.final_stats == (max_degree=35, max_terms=96)
     @test result.fraction_result.stats == (

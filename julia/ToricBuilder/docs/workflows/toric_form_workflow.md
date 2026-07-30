@@ -23,8 +23,8 @@ The main outputs are:
 - `result.standard_matrix`: the decoupled standard matrix,
 - `result.standard_blocks.Hz` and `result.standard_blocks.Hx`: the standard CSS blocks,
 - `result.row_transformation`: the row-side basis change,
-- `result.phi_1`: the paper's degree-one decoupling map,
-- `result.phi_1_inv`: optional, present only when `compute_inverse=true`,
+- `result.psi_1_inverse`: the paper's standard-to-input degree-one map,
+- `result.psi_1`: optional inverse map, present only when `compute_inverse=true`,
 - `result.column_transformation`: optional full symplectic column map, present only when `compute_inverse=true`,
 - `result.product_state_num` and `result.toric_num`: decomposition counts.
 

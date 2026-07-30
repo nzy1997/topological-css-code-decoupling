@@ -20,12 +20,24 @@ The Python result fields follow the paper's map directions:
 
 | Python API | Paper notation | Direction |
 | --- | --- | --- |
-| `result.psi.psi_0`, `psi_1`, `psi_2` | `ψ₀`, `ψ₁`, `ψ₂` | input complex → standard complex |
-| `result.psi_inverse.psi_0_inverse`, `psi_1_inverse`, `psi_2_inverse` | `ψ₀⁻¹`, `ψ₁⁻¹`, `ψ₂⁻¹` | standard complex → input complex |
+| `result.psi.psi_0`, `result.psi.psi_1`, `result.psi.psi_2` | `ψ₀`, `ψ₁`, `ψ₂` | input complex → standard complex |
+| `result.psi_inverse.psi_0_inverse`, `result.psi_inverse.psi_1_inverse`, `result.psi_inverse.psi_2_inverse` | `ψ₀⁻¹`, `ψ₁⁻¹`, `ψ₂⁻¹` | standard complex → input complex |
 | internal `phi_1`, `phi_2`, `phi_2_prime`, `phi_1_prime` | intermediate construction maps | internal only; not paper-level result fields |
 
 `result.psi_inverse` is constructed directly. `result.psi` is available when
 the Python solver is called with `compute_psi=True`.
+
+### Julia/Oscar map notation
+
+The degree-one result fields also follow the paper's map directions:
+
+| Julia/Oscar API | Paper notation | Direction |
+| --- | --- | --- |
+| `result.psi_1_inverse` | $\psi_1^{-1}$ | standard complex → input complex |
+| `result.psi_1` | $\psi_1$ | input complex → standard complex |
+
+`result.psi_1_inverse` is constructed directly. `result.psi_1` is available
+when the Julia workflow is called with `compute_inverse=true`.
 
 ## Setup
 

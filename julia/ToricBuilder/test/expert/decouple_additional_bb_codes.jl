@@ -4,7 +4,7 @@ using ToricBuilder
 @testset "additional BB code decoupling script inventory and markdown" begin
     script_path = joinpath(dirname(dirname(@__DIR__)), "example", "scripts", "decouple_additional_bb_codes.jl")
     source = read(script_path, String)
-    @test occursin("\"additional_bb_code_decoupling_cache_v2\"", source)
+    @test occursin("\"additional_bb_code_decoupling_cache_v3\"", source)
     @test occursin("warmup::Bool=true", source)
     @test occursin("capture_debug::Bool=false", source)
     @test occursin("check_cache::Bool=false", source)
@@ -77,12 +77,12 @@ using ToricBuilder
             product_state_num=6,
             toric_num=7,
             solving_time=1.2345,
-            max_ele_phi_1="x*y",
-            max_degree_phi_1=8,
-            max_ele_phi_1_inv=nothing,
-            max_degree_phi_1_inv=nothing,
-            max_column_monomial_count_phi_1=10,
-            max_column_monomial_count_phi_1_inv=nothing,
+            max_ele_psi_1_inverse="x*y",
+            max_degree_psi_1_inverse=8,
+            max_ele_psi_1=nothing,
+            max_degree_psi_1=nothing,
+            max_column_monomial_count_psi_1_inverse=10,
+            max_column_monomial_count_psi_1=nothing,
         ),
         nothing,
         "0",
@@ -95,7 +95,7 @@ using ToricBuilder
         :ok,
         Dict{String, Any}(),
         nothing,
-        (phi_1_inv=nothing, column_transformation=nothing),
+        (psi_1=nothing, column_transformation=nothing),
         nothing,
         "0",
         Dict{String, Any}(),
@@ -106,7 +106,7 @@ using ToricBuilder
         :ok,
         Dict{String, Any}(),
         nothing,
-        (phi_1_inv=:phi_1_inv, column_transformation=:column_transformation),
+        (psi_1=:psi_1, column_transformation=:column_transformation),
         nothing,
         "0",
         Dict{String, Any}(),
@@ -144,8 +144,8 @@ using ToricBuilder
         @test getfield(harness, :warmup_show_progress)[] === false
         @test length(lines) == 4
         @test startswith(lines[1], "| Code | Definition / decouple input | \$L\$ |")
-        @test occursin("Maximum_term_phi_1", lines[1])
-        @test occursin("Maximum_term_phi_1_inv", lines[1])
+        @test occursin("Maximum_term_psi_1_inverse", lines[1])
+        @test occursin("Maximum_term_psi_1", lines[1])
         @test !occursin("Maximum_term_Q", lines[1])
         @test occursin("bunny_001", lines[3])
         @test occursin("<br>", lines[3])

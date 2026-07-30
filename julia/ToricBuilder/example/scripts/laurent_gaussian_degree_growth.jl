@@ -209,21 +209,21 @@ function main(; verify_expected::Bool=true)
 
     # The current path first fixes the standard target and then solves an
     # equivalent local equation as an exact Laurent-module problem. Its public
-    # witness satisfies (row_Hz * input_Hz) * phi_1 = Hzt.
+    # witness satisfies (row_Hz * input_Hz) * psi_1_inverse = Hzt.
     debug = capture_toric_form_debug_matrices(input_matrix; show_progress=false)
     stabilizer_count = div(nrows(input_matrix), 2)
     qubit_count = div(ncols(input_matrix), 2)
     input_Hz = debug.input_matrix[1:stabilizer_count, 1:qubit_count]
     equation_Hz = debug.row_blocks.Hz * input_Hz
     Hzt = debug.standard_blocks.Hz
-    phi_1 = debug.phi_1
+    psi_1_inverse = debug.psi_1_inverse
 
-    equation_Hz * phi_1 == Hzt ||
-        error("current Laurent-module solution failed equation_Hz * phi_1 == Hzt")
+    equation_Hz * psi_1_inverse == Hzt ||
+        error("current Laurent-module solution failed equation_Hz * psi_1_inverse == Hzt")
 
     trace = direct_polynomial_gaussian_trace(equation_Hz, Hzt)
     fraction_result = direct_fraction_field_gaussian(equation_Hz, Hzt)
-    solution_stats = laurent_matrix_stats(phi_1)
+    solution_stats = laurent_matrix_stats(psi_1_inverse)
     print_trace(trace, solution_stats)
     println()
     println("Fraction-field Gaussian witness: ", fraction_result.stats)
@@ -244,12 +244,12 @@ function main(; verify_expected::Bool=true)
     end
 
     println()
-    println("Verified: equation_Hz * phi_1 == Hzt")
+    println("Verified: equation_Hz * psi_1_inverse == Hzt")
     println("Direct polynomial elimination: degree 2 -> $(trace.final_stats.max_degree), terms 2 -> $(trace.final_stats.max_terms)")
     println("Ordinary field Gaussian: denominator degree $(fraction_result.stats.denominator_degree), denominator terms $(fraction_result.stats.denominator_terms)")
     println("Exact Laurent-module witness: degree $(solution_stats.max_degree), terms $(solution_stats.max_terms)")
 
-    return (; poly_vector, input_matrix, equation_Hz, Hzt, phi_1, trace, fraction_result, solution_stats)
+    return (; poly_vector, input_matrix, equation_Hz, Hzt, psi_1_inverse, trace, fraction_result, solution_stats)
 end
 
 if abspath(PROGRAM_FILE) == @__FILE__

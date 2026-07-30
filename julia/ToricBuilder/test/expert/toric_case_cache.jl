@@ -21,7 +21,11 @@ using Oscar
         @test decoupled.status == :ok
         @test decoupled.format_version == DECOUPLED_TORIC_CASE_FORMAT_VERSION
         @test decoupled.debug_result === nothing
-        @test decoupled.transfer_result.phi_1_inv === nothing
+        @test DECOUPLED_TORIC_CASE_FORMAT_VERSION == 3
+        @test hasproperty(decoupled.transfer_result, :psi_1_inverse)
+        @test decoupled.transfer_result.psi_1 === nothing
+        @test !hasproperty(decoupled.transfer_result, :phi_1)
+        @test !hasproperty(decoupled.transfer_result, :phi_1_inv)
         @test decoupled.transfer_result.column_transformation === nothing
         @test hasproperty(decoupled.transfer_result, :input_blocks)
         @test hasproperty(decoupled.transfer_result, :standard_blocks)
@@ -29,6 +33,13 @@ using Oscar
         @test decoupled.poly_vec[1] == original_first
 
         save_decoupled_toric_case(path, decoupled)
+        raw_payload = Oscar.load(path)
+        raw_transfer = ToricBuilder._restore_serialization_safe_value(
+            ToricBuilder._payload_field(raw_payload, :transfer_result),
+        )
+        @test hasproperty(raw_transfer, :psi_1_inverse)
+        @test !hasproperty(raw_transfer, :phi_1)
+        @test !hasproperty(raw_transfer, :phi_1_inv)
         loaded = load_decoupled_toric_case(path)
 
         @test loaded.case_id == "xy_case"
@@ -40,6 +51,91 @@ using Oscar
         @test loaded.transfer_result.input_blocks.Hz == decoupled.transfer_result.input_blocks.Hz
         @test loaded.transfer_result.standard_blocks.Hz == decoupled.transfer_result.standard_blocks.Hz
         @test loaded.transfer_result.standard_blocks.Hx == decoupled.transfer_result.standard_blocks.Hx
+    end
+end
+
+@testset "save_decoupled_toric_case canonicalizes public legacy instances" begin
+    legacy_case = ToricBuilder.DecoupledToricCase(
+        2,
+        "legacy_public_instance",
+        :ok,
+        Dict{String, Any}(),
+        String[],
+        (phi_1=:psi_1_inverse_value, phi_1_inv=:psi_1_value),
+        (phi_1=:debug_psi_1_inverse_value, phi_1_inv=:debug_psi_1_value),
+        "0",
+        Dict{String, Any}(),
+    )
+
+    mktempdir() do tmpdir
+        path = joinpath(tmpdir, "legacy_public_instance.jls")
+        save_decoupled_toric_case(path, legacy_case)
+        raw_payload = Oscar.load(path)
+        raw_transfer = ToricBuilder._restore_serialization_safe_value(
+            ToricBuilder._payload_field(raw_payload, :transfer_result),
+        )
+        raw_debug = ToricBuilder._restore_serialization_safe_value(
+            ToricBuilder._payload_field(raw_payload, :debug_result),
+        )
+        @test Int(ToricBuilder._payload_field(raw_payload, :format_version)) == 3
+        @test raw_transfer.psi_1_inverse == :psi_1_inverse_value
+        @test raw_transfer.psi_1 == :psi_1_value
+        @test !hasproperty(raw_transfer, :phi_1)
+        @test !hasproperty(raw_transfer, :phi_1_inv)
+        @test raw_debug.psi_1_inverse == :debug_psi_1_inverse_value
+        @test raw_debug.psi_1 == :debug_psi_1_value
+        @test !hasproperty(raw_debug, :phi_1)
+        @test !hasproperty(raw_debug, :phi_1_inv)
+    end
+
+    legacy_dict_case = ToricBuilder.DecoupledToricCase(
+        2,
+        "legacy_public_dict_instance",
+        :ok,
+        Dict{String, Any}(),
+        String[],
+        Dict(:phi_1 => :psi_1_inverse_value, :phi_1_inv => :psi_1_value),
+        Dict("phi_1" => "debug_psi_1_inverse_value", "phi_1_inv" => "debug_psi_1_value"),
+        "0",
+        Dict{String, Any}(),
+    )
+
+    mktempdir() do tmpdir
+        path = joinpath(tmpdir, "legacy_public_dict_instance.jls")
+        save_decoupled_toric_case(path, legacy_dict_case)
+        raw_payload = Oscar.load(path)
+        raw_transfer = ToricBuilder._restore_serialization_safe_value(
+            ToricBuilder._payload_field(raw_payload, :transfer_result),
+        )
+        raw_debug = ToricBuilder._restore_serialization_safe_value(
+            ToricBuilder._payload_field(raw_payload, :debug_result),
+        )
+        @test Int(ToricBuilder._payload_field(raw_payload, :format_version)) == 3
+        @test raw_transfer[:psi_1_inverse] == :psi_1_inverse_value
+        @test raw_transfer[:psi_1] == :psi_1_value
+        @test !haskey(raw_transfer, :phi_1)
+        @test !haskey(raw_transfer, :phi_1_inv)
+        @test raw_debug["psi_1_inverse"] == "debug_psi_1_inverse_value"
+        @test raw_debug["psi_1"] == "debug_psi_1_value"
+        @test !haskey(raw_debug, "phi_1")
+        @test !haskey(raw_debug, "phi_1_inv")
+    end
+
+    collision_case = ToricBuilder.DecoupledToricCase(
+        2,
+        "legacy_public_collision",
+        :ok,
+        Dict{String, Any}(),
+        String[],
+        Dict(:phi_1 => :old_value, :psi_1_inverse => :new_value),
+        nothing,
+        "0",
+        Dict{String, Any}(),
+    )
+
+    mktempdir() do tmpdir
+        path = joinpath(tmpdir, "legacy_public_collision.jls")
+        @test_throws ArgumentError save_decoupled_toric_case(path, collision_case)
     end
 end
 
@@ -58,7 +154,7 @@ end
     @test !isnothing(decoupled.debug_result)
     @test decoupled.debug_result.input_matrix == decoupled.transfer_result.input_matrix
     @test decoupled.debug_result.standard_matrix == decoupled.transfer_result.standard_matrix
-    @test decoupled.debug_result.phi_1 == decoupled.transfer_result.phi_1
+    @test decoupled.debug_result.psi_1_inverse == decoupled.transfer_result.psi_1_inverse
 end
 
 @testset "DecoupledToricCase inverse mode round-trip" begin
@@ -69,21 +165,21 @@ end
     mktempdir() do tmpdir
         path = joinpath(tmpdir, "xy_inverse.jls")
         decoupled = build_decoupled_toric_case("xy_inverse", poly_vec; show_progress=false, compute_inverse=true)
-        @test !isnothing(decoupled.transfer_result.phi_1_inv)
+        @test !isnothing(decoupled.transfer_result.psi_1)
         @test !isnothing(decoupled.transfer_result.column_transformation)
         save_decoupled_toric_case(path, decoupled)
         loaded = load_decoupled_toric_case(path)
-        loaded_ring = base_ring(loaded.transfer_result.phi_1)
-        @test loaded.transfer_result.phi_1 * loaded.transfer_result.phi_1_inv ==
-              identity_matrix(loaded_ring, size(loaded.transfer_result.phi_1, 1))
+        loaded_ring = base_ring(loaded.transfer_result.psi_1_inverse)
+        @test loaded.transfer_result.psi_1_inverse * loaded.transfer_result.psi_1 ==
+              identity_matrix(loaded_ring, size(loaded.transfer_result.psi_1_inverse, 1))
     end
 end
 
-@testset "load_decoupled_toric_case rejects non-v2 payload with migration message" begin
+@testset "load_decoupled_toric_case rejects unsupported version" begin
     mktempdir() do tmpdir
         path = joinpath(tmpdir, "legacy_case.jls")
         payload = Dict{String, Any}(
-            "format_version" => 1,
+            "format_version" => 4,
             "case_id" => "legacy_case",
             "status" => :ok,
             "metadata" => Dict{String, String}(),
@@ -100,21 +196,21 @@ end
             caught
         end
         @test err isa ArgumentError
-        @test occursin("migrate_cached_toric_cases_to_decoupled", sprint(showerror, err))
+        @test occursin("Unsupported DecoupledToricCase format version 4", sprint(showerror, err))
     end
 end
 
-@testset "v1 cache migration extracts phi_1 and phi_1_inv" begin
+@testset "v1 cache migration extracts canonical psi maps" begin
     F = GF(2)
     Rxy, (x, y) = laurent_polynomial_ring(F, ["x", "y"])
     old = build_toric_form([1 + x + x*y, 1 + y + x*y]; show_progress=false, compute_inverse=true)
     q = size(old.column_transformation, 1) ÷ 2
-    expected_phi_1 = old.column_transformation[1:q, 1:q]
-    expected_phi_1_inv = ToricBuilder._dagger_laurent_matrix(old.column_transformation[q+1:2*q, q+1:2*q])
+    expected_psi_1_inverse = old.column_transformation[1:q, 1:q]
+    expected_psi_1 = ToricBuilder._dagger_laurent_matrix(old.column_transformation[q+1:2*q, q+1:2*q])
 
     mktempdir() do tmpdir
         src_dir = joinpath(tmpdir, "v1")
-        dst_dir = joinpath(tmpdir, "v2")
+        dst_dir = joinpath(tmpdir, "v3")
         mkpath(src_dir)
         v1_path = joinpath(src_dir, "case_001.jls")
         Oscar.save(v1_path, Dict{String, Any}(
@@ -137,12 +233,12 @@ end
                 solving_time=old.solving_time,
                 A_size=old.A_size,
                 Q_size=size(old.column_transformation),
-                max_eleQ=old.max_ele_phi_1,
-                max_degreeQ=old.max_degree_phi_1,
-                max_eleQinv=old.max_ele_phi_1_inv,
-                max_degreeQinv=old.max_degree_phi_1_inv,
-                max_column_monomial_countQ=old.max_column_monomial_count_phi_1,
-                max_column_monomial_countQinv=old.max_column_monomial_count_phi_1_inv,
+                max_eleQ=old.max_ele_psi_1_inverse,
+                max_degreeQ=old.max_degree_psi_1_inverse,
+                max_eleQinv=old.max_ele_psi_1,
+                max_degreeQinv=old.max_degree_psi_1,
+                max_column_monomial_countQ=old.max_column_monomial_count_psi_1_inverse,
+                max_column_monomial_countQinv=old.max_column_monomial_count_psi_1,
             ),
             "created_at" => "0",
             "runtime_info" => Dict{String, Any}("julia_version" => string(VERSION)),
@@ -151,13 +247,123 @@ end
         written = migrate_cached_toric_cases_to_decoupled(src_dir, dst_dir)
         @test length(written) == 1
         migrated = load_decoupled_toric_case(joinpath(dst_dir, "case_001.jls"))
-        @test migrated.transfer_result.phi_1 == expected_phi_1
-        @test migrated.transfer_result.phi_1_inv == expected_phi_1_inv
+        @test migrated.format_version == 3
+        @test migrated.transfer_result.psi_1_inverse == expected_psi_1_inverse
+        @test migrated.transfer_result.psi_1 == expected_psi_1
         @test migrated.transfer_result.column_transformation == old.column_transformation
         @test migrated.transfer_result.input_blocks.Hz == old.input_blocks.Hz
         @test migrated.transfer_result.standard_blocks.Hx == old.standard_blocks.Hx
-        @test migrated.transfer_result.max_ele_phi_1 == old.max_ele_phi_1
-        @test migrated.transfer_result.max_ele_phi_1_inv == old.max_ele_phi_1_inv
+        @test migrated.transfer_result.max_ele_psi_1_inverse == old.max_ele_psi_1_inverse
+        @test migrated.transfer_result.max_ele_psi_1 == old.max_ele_psi_1
+    end
+end
+
+@testset "load_decoupled_toric_case migrates v2 fields in memory" begin
+    F = GF(2)
+    Rxy, (x, y) = laurent_polynomial_ring(F, ["x", "y"])
+    current = build_decoupled_toric_case(
+        "v2_case",
+        [1 + x + x*y, 1 + y + x*y];
+        show_progress=false,
+        compute_inverse=true,
+        capture_debug=true,
+    )
+    v3_fields = (
+        :psi_1_inverse,
+        :psi_1,
+        :psi_1_inverse_size,
+        :psi_1_inverse_original,
+        :psi_1_original,
+        :max_ele_psi_1_inverse,
+        :max_degree_psi_1_inverse,
+        :max_column_monomial_count_psi_1_inverse,
+        :max_ele_psi_1,
+        :max_degree_psi_1,
+        :max_column_monomial_count_psi_1,
+    )
+    retained_fields = Tuple(name for name in propertynames(current.transfer_result) if !(name in v3_fields))
+    retained_transfer = NamedTuple{retained_fields}(
+        Tuple(getproperty(current.transfer_result, name) for name in retained_fields),
+    )
+    legacy_v2_transfer = (;
+        retained_transfer...,
+        phi_1=current.transfer_result.psi_1_inverse,
+        phi_1_inv=current.transfer_result.psi_1,
+        phi_1_size=current.transfer_result.psi_1_inverse_size,
+        phi_1_original=current.transfer_result.psi_1_inverse_original,
+        phi_1_inv_original=current.transfer_result.psi_1_original,
+        max_ele_phi_1=current.transfer_result.max_ele_psi_1_inverse,
+        max_degree_phi_1=current.transfer_result.max_degree_psi_1_inverse,
+        max_column_monomial_count_phi_1=current.transfer_result.max_column_monomial_count_psi_1_inverse,
+        max_ele_phi_1_inv=current.transfer_result.max_ele_psi_1,
+        max_degree_phi_1_inv=current.transfer_result.max_degree_psi_1,
+        max_column_monomial_count_phi_1_inv=current.transfer_result.max_column_monomial_count_psi_1,
+    )
+    debug_fields = (:psi_1_inverse, :psi_1)
+    retained_debug_fields = Tuple(name for name in propertynames(current.debug_result) if !(name in debug_fields))
+    retained_debug = NamedTuple{retained_debug_fields}(
+        Tuple(getproperty(current.debug_result, name) for name in retained_debug_fields),
+    )
+    legacy_v2_debug = (;
+        retained_debug...,
+        phi_1=current.debug_result.psi_1_inverse,
+        phi_1_inv=current.debug_result.psi_1,
+    )
+
+    mktempdir() do tmpdir
+        path = joinpath(tmpdir, "v2_case.jls")
+        payload = ToricBuilder._decoupled_toric_case_payload(current)
+        payload["format_version"] = 2
+        payload["transfer_result"] = ToricBuilder._serialization_safe_value(legacy_v2_transfer)
+        payload["debug_result"] = ToricBuilder._serialization_safe_value(legacy_v2_debug)
+        Oscar.save(path, payload)
+
+        migrated = load_decoupled_toric_case(path)
+        @test migrated.format_version == 3
+        @test migrated.transfer_result.psi_1_inverse == current.transfer_result.psi_1_inverse
+        @test migrated.transfer_result.psi_1 == current.transfer_result.psi_1
+        @test migrated.transfer_result.psi_1_inverse_size == current.transfer_result.psi_1_inverse_size
+        @test migrated.transfer_result.max_degree_psi_1_inverse == current.transfer_result.max_degree_psi_1_inverse
+        @test migrated.transfer_result.max_degree_psi_1 == current.transfer_result.max_degree_psi_1
+        @test !hasproperty(migrated.transfer_result, :phi_1)
+        @test !hasproperty(migrated.transfer_result, :phi_1_inv)
+        @test migrated.debug_result.psi_1_inverse == current.debug_result.psi_1_inverse
+        @test !hasproperty(migrated.debug_result, :phi_1)
+        @test !hasproperty(migrated.debug_result, :phi_1_inv)
+        @test Int(ToricBuilder._payload_field(Oscar.load(path), :format_version)) == 2
+    end
+end
+
+@testset "load_decoupled_toric_case migrates v2 dictionary fields" begin
+    mktempdir() do tmpdir
+        path = joinpath(tmpdir, "v2_dict_case.jls")
+        Oscar.save(path, Dict{String, Any}(
+            "format_version" => 2,
+            "case_id" => "v2_dict_case",
+            "status" => :ok,
+            "metadata" => Dict{String, Any}(),
+            "poly_vec" => String[],
+            "transfer_result" => Dict{String, Any}(
+                "phi_1" => "inverse map",
+                "phi_1_inv" => "forward map",
+            ),
+            "debug_result" => Dict{String, Any}(
+                "phi_1" => "debug inverse map",
+                "phi_1_inv" => "debug forward map",
+            ),
+            "created_at" => "0",
+            "runtime_info" => Dict{String, Any}(),
+        ))
+
+        migrated = load_decoupled_toric_case(path)
+        @test migrated.transfer_result["psi_1_inverse"] == "inverse map"
+        @test migrated.transfer_result["psi_1"] == "forward map"
+        @test !haskey(migrated.transfer_result, "phi_1")
+        @test !haskey(migrated.transfer_result, "phi_1_inv")
+        @test migrated.debug_result["psi_1_inverse"] == "debug inverse map"
+        @test migrated.debug_result["psi_1"] == "debug forward map"
+        @test !haskey(migrated.debug_result, "phi_1")
+        @test !haskey(migrated.debug_result, "phi_1_inv")
     end
 end
 
@@ -167,7 +373,7 @@ end
 
     mktempdir() do tmpdir
         src_dir = joinpath(tmpdir, "v1")
-        dst_dir = joinpath(tmpdir, "v2")
+        dst_dir = joinpath(tmpdir, "v3")
         mkpath(src_dir)
         Oscar.save(joinpath(src_dir, "case_failed.jls"), Dict{String, Any}(
             "format_version" => 1,
@@ -194,12 +400,12 @@ end
         @test migrated.transfer_result.u_rel == x
         @test migrated.transfer_result.v_rel == y
         @test migrated.transfer_result.input_matrix === nothing
-        @test migrated.transfer_result.phi_1 === nothing
-        @test migrated.transfer_result.phi_1_inv === nothing
+        @test migrated.transfer_result.psi_1_inverse === nothing
+        @test migrated.transfer_result.psi_1 === nothing
     end
 end
 
-@testset "load_decoupled_toric_case rejects v1 payload with migration message" begin
+@testset "load_decoupled_toric_case migrates v1 payload in memory" begin
     mktempdir() do tmpdir
         path = joinpath(tmpdir, "old.jls")
         Oscar.save(path, Dict{String, Any}(
@@ -211,14 +417,9 @@ end
             "created_at" => "0",
             "runtime_info" => Dict{String, Any}(),
         ))
-        err = try
-            load_decoupled_toric_case(path)
-            nothing
-        catch caught
-            caught
-        end
-        @test err isa ArgumentError
-        @test occursin("migrate_cached_toric_cases_to_decoupled", sprint(showerror, err))
+        migrated = load_decoupled_toric_case(path)
+        @test migrated.format_version == 3
+        @test migrated.case_id == "old"
     end
 end
 

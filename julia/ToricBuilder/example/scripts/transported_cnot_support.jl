@@ -24,10 +24,10 @@ function toric_pair_cnot_matrix(result, target::Int, control::Int)
     1 <= target <= result.toric_num || throw(ArgumentError("target must index a toric-code sector"))
     1 <= control <= result.toric_num || throw(ArgumentError("control must index a toric-code sector"))
     target != control || throw(ArgumentError("control and target must be distinct"))
-    isnothing(result.phi_1_inv) && throw(ArgumentError("transported CNOTs require compute_inverse=true"))
+    isnothing(result.psi_1) && throw(ArgumentError("transported CNOTs require compute_inverse=true"))
 
-    qsize = size(result.phi_1, 1)
-    elementary = identity_matrix(base_ring(result.phi_1), qsize)
+    qsize = size(result.psi_1_inverse, 1)
+    elementary = identity_matrix(base_ring(result.psi_1_inverse), qsize)
     offset = 2 * result.product_state_num
     for component in 0:1
         target_column = offset + 2 * target - 1 + component
@@ -43,7 +43,7 @@ function transported_cnot_measurements(result)
         for control in 1:result.toric_num
             target == control && continue
             elementary = toric_pair_cnot_matrix(result, target, control)
-            transported = result.phi_1 * elementary * result.phi_1_inv
+            transported = result.psi_1_inverse * elementary * result.psi_1
             push!(
                 measurements,
                 (;
@@ -81,7 +81,7 @@ function transported_cnot_payload()
     return Dict(
         "metadata" => Dict(
             "schema_version" => 1,
-            "transport_formula" => "Q = phi_1 * E * phi_1_inv",
+            "transport_formula" => "Q = psi_1_inverse * E * psi_1",
             "support_definition" => "maximum total Laurent-monomial count in a column of Q",
             "source" => "Supplementary table: support spreading of transported inter-copy CNOTs",
             "software" => "Julia 1.12.5 and ToricBuilder.jl",
