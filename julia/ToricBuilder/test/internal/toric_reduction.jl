@@ -27,7 +27,7 @@ if isdefined(ToricBuilder, :gaussian_elimination!)
     end
 end
 
-@testset "phi_1 toric correction helpers match dense correction" begin
+@testset "psi_1_inverse toric correction helpers match dense correction" begin
     F = GF(2)
     Rxy, (x, y) = laurent_polynomial_ring(F, ["x", "y"])
 
@@ -53,7 +53,7 @@ end
     Adagger[2*product_state_num+3, product_state_num+2] = x*y + 1
     Adagger[2*product_state_num+4, product_state_num+2] = x^-1 + y
 
-    phi_1_base = matrix(Rxy, qubit_num, qubit_num, [
+    psi_1_inverse_base = matrix(Rxy, qubit_num, qubit_num, [
         1 x 0 y 1 0 x*y 1;
         0 1 y 0 x 1 0 y^-1;
         x^-1 0 1 x*y 0 y 1 0;
@@ -75,16 +75,16 @@ end
         0 x 0 1 0 y 0 1;
     ])
 
-    correction = ToricBuilder._build_phi1_toric_correction(
+    correction = ToricBuilder._build_psi1_inverse_toric_correction(
         Hxdagger,
         Adagger,
         product_state_num,
         toric_num,
     )
 
-    dense_updated = phi_1_base + Hxdagger * ToricBuilder._dagger_laurent_matrix(Adagger)
-    block_updated = ToricBuilder._apply_phi1_toric_correction!(copy(phi_1_base), correction)
-    fused = ToricBuilder._compose_phi1_with_toric_correction(C, phi_1_base, correction)
+    dense_updated = psi_1_inverse_base + Hxdagger * ToricBuilder._dagger_laurent_matrix(Adagger)
+    block_updated = ToricBuilder._apply_psi1_inverse_toric_correction!(copy(psi_1_inverse_base), correction)
+    fused = ToricBuilder._compose_psi1_inverse_with_toric_correction(C, psi_1_inverse_base, correction)
 
     @test block_updated == dense_updated
     @test fused == C * dense_updated
@@ -176,9 +176,11 @@ end
     @test hasproperty(res, :input_blocks)
     @test hasproperty(res, :standard_blocks)
     @test hasproperty(res, :row_blocks)
-    @test hasproperty(res, :phi_1)
+    @test hasproperty(res, :psi_1_inverse)
+    @test res.psi_1 === nothing
+    @test !hasproperty(res, Symbol("ph", "i_1"))
+    @test !hasproperty(res, Symbol("ph", "i_1_inv"))
     @test res.input_matrix == A4
-    @test res.phi_1_inv === nothing
     @test res.column_transformation === nothing
     @test check_result(res, A4)
 
@@ -230,12 +232,12 @@ end
 
     res = to_toric_form(A4; show_progress=false, compute_inverse=true)
 
-    @test !isnothing(res.phi_1_inv)
+    @test !isnothing(res.psi_1)
     @test !isnothing(res.column_transformation)
     @test check_result(res, A4; require_inverse=true)
-    identity = identity_matrix(Rxy, size(res.phi_1, 1))
-    @test res.phi_1 * res.phi_1_inv == identity
-    @test res.phi_1_inv * res.phi_1 == identity
+    identity = identity_matrix(Rxy, size(res.psi_1_inverse, 1))
+    @test res.psi_1_inverse * res.psi_1 == identity
+    @test res.psi_1 * res.psi_1_inverse == identity
 end
 
 @testset "capture_toric_form_debug_matrices" begin
@@ -253,8 +255,8 @@ end
     @test debug.standard_blocks == res.standard_blocks
     @test debug.row_transformation == res.row_transformation
     @test debug.row_blocks == res.row_blocks
-    @test debug.phi_1 == res.phi_1
-    @test debug.phi_1_inv === nothing
+    @test debug.psi_1_inverse == res.psi_1_inverse
+    @test debug.psi_1 === nothing
     @test debug.column_transformation === nothing
     @test debug.product_state_num == res.product_state_num
     @test debug.toric_num == res.toric_num
@@ -322,32 +324,32 @@ end
         0 0 0;
     ])
 
-    phi_1_local = zero_matrix(Rxy, qubit_num, qubit_num)
-    phi_1_local[:, 1] = Hxdagger[:, 1]
-    phi_1_local[:, 2] = Hxdagger[:, 2]
-    phi_1_local[:, product_state_num+1] = Hxdagger[:, 1]
-    phi_1_local[:, product_state_num+2] = Hxdagger[:, 2]
+    psi_1_inverse_local = zero_matrix(Rxy, qubit_num, qubit_num)
+    psi_1_inverse_local[:, 1] = Hxdagger[:, 1]
+    psi_1_inverse_local[:, 2] = Hxdagger[:, 2]
+    psi_1_inverse_local[:, product_state_num+1] = Hxdagger[:, 1]
+    psi_1_inverse_local[:, product_state_num+2] = Hxdagger[:, 2]
 
     Pdagger = ToricBuilder._build_initial_pdagger(
         Hxdagger,
-        phi_1_local,
+        psi_1_inverse_local,
         Hxtdagger,
         product_state_num,
         toric_num,
     )
 
     @test Pdagger == expected_Pdagger
-    @test Hxdagger * Pdagger == phi_1_local * Hxtdagger
+    @test Hxdagger * Pdagger == psi_1_inverse_local * Hxtdagger
     @test Pdagger[1:product_state_num, 1:product_state_num] ==
           identity_matrix(Rxy, product_state_num)
     @test all(iszero, Pdagger[product_state_num+1:end, 1:product_state_num])
 
-    bad_phi_1_local = copy(phi_1_local)
-    bad_phi_1_local[:, product_state_num+1] = zero_matrix(Rxy, qubit_num, 1)
+    bad_psi_1_inverse_local = copy(psi_1_inverse_local)
+    bad_psi_1_inverse_local[:, product_state_num+1] = zero_matrix(Rxy, qubit_num, 1)
     err = try
         ToricBuilder._build_initial_pdagger(
             Hxdagger,
-            bad_phi_1_local,
+            bad_psi_1_inverse_local,
             Hxtdagger,
             product_state_num,
             toric_num,

@@ -72,13 +72,13 @@ function _solve_selected_columns(A, B, kept_cols::AbstractVector{<:Integer})
     return result
 end
 
-function _build_initial_pdagger(Hxdagger, phi_1_local, Hxtdagger, product_state_num::Int, toric_num::Int)
+function _build_initial_pdagger(Hxdagger, psi_1_inverse_local, Hxtdagger, product_state_num::Int, toric_num::Int)
     R = base_ring(Hxdagger)
     stab_num = ncols(Hxdagger)
     Pdagger = zero_matrix(R, stab_num, stab_num)
 
     if product_state_num > 0
-        expected_product_cols = phi_1_local[:, product_state_num+1:2*product_state_num]
+        expected_product_cols = psi_1_inverse_local[:, product_state_num+1:2*product_state_num]
         Hxdagger[:, 1:product_state_num] == expected_product_cols || throw(
             ErrorException("_build_initial_pdagger product-state columns do not match known Hxdagger columns"),
         )
@@ -89,10 +89,10 @@ function _build_initial_pdagger(Hxdagger, phi_1_local, Hxtdagger, product_state_
 
     if toric_num > 0
         toric_cols = product_state_num + 1:stab_num
-        rhs_toric = phi_1_local * Hxtdagger[:, toric_cols]
+        rhs_toric = psi_1_inverse_local * Hxtdagger[:, toric_cols]
         Pdagger[:, toric_cols] = solve_laurent_linear(Hxdagger, rhs_toric)
         Hxdagger * Pdagger[:, toric_cols] == rhs_toric || throw(
-            ErrorException("_build_initial_pdagger failed toric columns of Hxdagger * Pdagger == phi_1_local * Hxtdagger"),
+            ErrorException("_build_initial_pdagger failed toric columns of Hxdagger * Pdagger == psi_1_inverse_local * Hxtdagger"),
         )
     end
 
@@ -229,7 +229,7 @@ function _solve_standard_hxt_correction(Hxt, P, Pt, product_state_num::Int, tori
     return Adagger
 end
 
-function _build_phi1_toric_correction(Hxdagger, Adagger, product_state_num::Int, toric_num::Int)
+function _build_psi1_inverse_toric_correction(Hxdagger, Adagger, product_state_num::Int, toric_num::Int)
     stab_num = product_state_num + toric_num
     qubit_num = 2 * product_state_num + 2 * toric_num
 
@@ -250,7 +250,7 @@ function _build_phi1_toric_correction(Hxdagger, Adagger, product_state_num::Int,
             if !(row_is_toric && col_is_toric) && !iszero(Adagger[row, col])
                 throw(
                     ErrorException(
-                        "phi_1 toric correction expected Adagger to vanish outside the toric block; found nonzero at ($row, $col)",
+                        "psi_1_inverse toric correction expected Adagger to vanish outside the toric block; found nonzero at ($row, $col)",
                     ),
                 )
             end
@@ -264,10 +264,10 @@ function _build_phi1_toric_correction(Hxdagger, Adagger, product_state_num::Int,
     )
 end
 
-function _apply_phi1_toric_correction!(phi_1, correction)
-    isempty(correction.target_cols) && return phi_1
-    phi_1[:, correction.target_cols] += correction.left * correction.right
-    return phi_1
+function _apply_psi1_inverse_toric_correction!(psi_1_inverse, correction)
+    isempty(correction.target_cols) && return psi_1_inverse
+    psi_1_inverse[:, correction.target_cols] += correction.left * correction.right
+    return psi_1_inverse
 end
 
 function _left_multiply_column_blocks(left, right, column_blocks)
@@ -305,13 +305,13 @@ function _left_multiply_column_blocks(left, right, column_blocks)
     return result
 end
 
-function _compose_phi1_with_toric_correction(column_transformation_block, phi_1_local, correction)
-    phi_1 = _left_multiply_column_blocks(
+function _compose_psi1_inverse_with_toric_correction(column_transformation_block, psi_1_inverse_local, correction)
+    psi_1_inverse = _left_multiply_column_blocks(
         column_transformation_block,
-        phi_1_local,
-        (1:ncols(phi_1_local),),
+        psi_1_inverse_local,
+        (1:ncols(psi_1_inverse_local),),
     )
-    isnothing(correction) && return phi_1
+    isnothing(correction) && return psi_1_inverse
 
     fused_correction = (
         target_cols=correction.target_cols,
@@ -322,7 +322,7 @@ function _compose_phi1_with_toric_correction(column_transformation_block, phi_1_
         ),
         right=correction.right,
     )
-    return _apply_phi1_toric_correction!(phi_1, fused_correction)
+    return _apply_psi1_inverse_toric_correction!(psi_1_inverse, fused_correction)
 end
 
 function _block_diagonal_toric_matrix(Hz, Hx)
@@ -390,8 +390,8 @@ function capture_toric_form_debug_matrices(E::ExcitationMatrix; show_progress::B
         em_matrix=em_matrix,
         row_transformation=res.row_transformation,
         row_blocks=res.row_blocks,
-        phi_1=res.phi_1,
-        phi_1_inv=res.phi_1_inv,
+        psi_1_inverse=res.psi_1_inverse,
+        psi_1=res.psi_1,
         column_transformation=res.column_transformation,
         standard_matrix=res.standard_matrix,
         standard_blocks=res.standard_blocks,
@@ -463,35 +463,35 @@ function to_toric_form(E::ExcitationMatrix; show_progress::Bool=true, compute_in
     # return Hx,Hz,Hxt,Hzt
     if show_progress
         println("--------------------------------")
-        println("Solving the equation Hz*phi_1 = Hzt, matrix size: Hz: $(size(Hz)), Hzt: $(size(Hzt))")
+        println("Solving the equation Hz*psi_1_inverse = Hzt, matrix size: Hz: $(size(Hz)), Hzt: $(size(Hzt))")
         println("--------------------------------")
     end
-    kept_phi_1_cols = Int[]
-    append!(kept_phi_1_cols, 1:product_state_num)
-    append!(kept_phi_1_cols, 2 * product_state_num + 1:qubit_num)
-    phi_1_local = _solve_selected_columns(Hz, Hzt, kept_phi_1_cols)
+    kept_psi_1_inverse_cols = Int[]
+    append!(kept_psi_1_inverse_cols, 1:product_state_num)
+    append!(kept_psi_1_inverse_cols, 2 * product_state_num + 1:qubit_num)
+    psi_1_inverse_local = _solve_selected_columns(Hz, Hzt, kept_psi_1_inverse_cols)
     # @show time() - t_start
-    # @show Hzt == Hz*phi_1_local
+    # @show Hzt == Hz*psi_1_inverse_local
 
-    phi_1_local[:, product_state_num+1:2*product_state_num] = _dagger_laurent_matrix(Hx)[:, 1:product_state_num]
-    # return Hx,Hz,Hxt,Hzt,phi_1_local
+    psi_1_inverse_local[:, product_state_num+1:2*product_state_num] = _dagger_laurent_matrix(Hx)[:, 1:product_state_num]
+    # return Hx,Hz,Hxt,Hzt,psi_1_inverse_local
     # @show time() - t_start
     if show_progress
         println("--------------------------------")
-        println("Solving the equation Hxdagger*Pdagger = phi_1_local*Hxtdagger, matrix size: Hxdagger: $(reverse(size(Hx))), phi_1_local: $(size(phi_1_local)), Hxtdagger: $(reverse(size(Hxt)))")
+        println("Solving the equation Hxdagger*Pdagger = psi_1_inverse_local*Hxtdagger, matrix size: Hxdagger: $(reverse(size(Hx))), psi_1_inverse_local: $(size(psi_1_inverse_local)), Hxtdagger: $(reverse(size(Hxt)))")
         println("--------------------------------")
     end
     Hxdagger = _dagger_laurent_matrix(Hx)
     Hxtdagger = _dagger_laurent_matrix(Hxt)
-    Pdagger = _build_initial_pdagger(Hxdagger, phi_1_local, Hxtdagger, product_state_num, toric_num)
+    Pdagger = _build_initial_pdagger(Hxdagger, psi_1_inverse_local, Hxtdagger, product_state_num, toric_num)
     P = _dagger_laurent_matrix(Pdagger)
     # @show time() - t_start
-    # @show phi_1_local*transpose(laurent_conjugate.(Hxt)) == transpose(laurent_conjugate.(Hx))*transpose(laurent_conjugate.(P))
-    # return P,phi_1_local
+    # @show psi_1_inverse_local*transpose(laurent_conjugate.(Hxt)) == transpose(laurent_conjugate.(Hx))*transpose(laurent_conjugate.(P))
+    # return P,psi_1_inverse_local
 
     @assert all(iszero,Pdagger[product_state_num+1:end,1:product_state_num]) "P is not in the correct form"
     pdet = det(P[product_state_num+1:end,product_state_num+1:end])
-    phi_1_correction = nothing
+    psi_1_inverse_correction = nothing
     # @show time() - t_start
     if length(pdet) != 1
         if show_progress
@@ -517,7 +517,7 @@ function to_toric_form(E::ExcitationMatrix; show_progress::Bool=true, compute_in
         end
         Adagger = _solve_standard_hxt_correction(Hxt, P, Pt, product_state_num, toric_num)
         # @show transpose(P+Pt) == Hxt*Atr
-        phi_1_correction = _build_phi1_toric_correction(Hxdagger, Adagger, product_state_num, toric_num)
+        psi_1_inverse_correction = _build_psi1_inverse_toric_correction(Hxdagger, Adagger, product_state_num, toric_num)
         P = Pt
         # @show time() - t_start
     elseif show_progress
@@ -526,32 +526,32 @@ function to_toric_form(E::ExcitationMatrix; show_progress::Bool=true, compute_in
         println("--------------------------------")
     end
 
-    # @show phi_1_local*transpose(laurent_conjugate.(Hxt)) == transpose(laurent_conjugate.(Hx))*transpose(laurent_conjugate.(P))
+    # @show psi_1_inverse_local*transpose(laurent_conjugate.(Hxt)) == transpose(laurent_conjugate.(Hx))*transpose(laurent_conjugate.(P))
     # @show time() - t_start
     Em.row_transformation[stab_num+1:2*stab_num, stab_num+1:2*stab_num] =
         P * Em.row_transformation[stab_num+1:2*stab_num, stab_num+1:2*stab_num]
 
-    phi_1 = _compose_phi1_with_toric_correction(
+    psi_1_inverse = _compose_psi1_inverse_with_toric_correction(
         Em.column_transformation[1:qubit_num, 1:qubit_num],
-        phi_1_local,
-        phi_1_correction,
+        psi_1_inverse_local,
+        psi_1_inverse_correction,
     )
-    phi_1_inv = nothing
+    psi_1 = nothing
     column_transformation = nothing
 
     if compute_inverse
         if show_progress
             println("--------------------------------")
-            println("Solving the equation phi_1*phi_1_inv = I, matrix size: phi_1: $(size(phi_1))")
+            println("Solving the equation psi_1_inverse*psi_1 = I, matrix size: psi_1_inverse: $(size(psi_1_inverse))")
             println("--------------------------------")
         end
-        phi_1_inv = solve_laurent_linear(phi_1, identity_matrix(Rl, qubit_num))
+        psi_1 = solve_laurent_linear(psi_1_inverse, identity_matrix(Rl, qubit_num))
         column_transformation = copy(Em.column_transformation)
-        phi_1_local_inv = phi_1_inv * Em.column_transformation[1:qubit_num, 1:qubit_num]
-        column_transformation[1:qubit_num, 1:qubit_num] = phi_1
+        psi_1_local = psi_1 * Em.column_transformation[1:qubit_num, 1:qubit_num]
+        column_transformation[1:qubit_num, 1:qubit_num] = psi_1_inverse
         column_transformation[qubit_num+1:2*qubit_num, qubit_num+1:2*qubit_num] =
             column_transformation[qubit_num+1:2*qubit_num, qubit_num+1:2*qubit_num] *
-            _dagger_laurent_matrix(phi_1_local_inv)
+            _dagger_laurent_matrix(psi_1_local)
     end
 
     standard_matrix = _block_diagonal_toric_matrix(Hzt, Hxt)
@@ -564,8 +564,8 @@ function to_toric_form(E::ExcitationMatrix; show_progress::Bool=true, compute_in
         standard_blocks=blocks.standard_blocks,
         row_transformation=Em.row_transformation,
         row_blocks=blocks.row_blocks,
-        phi_1=phi_1,
-        phi_1_inv=phi_1_inv,
+        psi_1_inverse=psi_1_inverse,
+        psi_1=psi_1,
         column_transformation=column_transformation,
         product_state_num=product_state_num,
         toric_num=toric_num,
@@ -581,15 +581,18 @@ function check_result(res, A; require_inverse::Bool=false)
     @assert res.input_blocks.Hz == A[1:stab_num, 1:qubit_num]
     @assert res.input_blocks.Hx == A[stab_num+1:2*stab_num, qubit_num+1:2*qubit_num]
     @assert res.standard_matrix == _block_diagonal_toric_matrix(res.standard_blocks.Hz, res.standard_blocks.Hx)
-    @assert res.row_blocks.Hz * res.input_blocks.Hz * res.phi_1 == res.standard_blocks.Hz
-    @assert res.row_blocks.Hx * res.input_blocks.Hx == res.standard_blocks.Hx * _dagger_laurent_matrix(res.phi_1)
+    @assert res.row_blocks.Hz * res.input_blocks.Hz * res.psi_1_inverse == res.standard_blocks.Hz
+    @assert res.row_blocks.Hx * res.input_blocks.Hx ==
+            res.standard_blocks.Hx * _dagger_laurent_matrix(res.psi_1_inverse)
 
     if require_inverse
-        isnothing(res.phi_1_inv) && throw(ArgumentError("Full check requires phi_1_inv; rerun with compute_inverse=true."))
+        isnothing(res.psi_1) && throw(ArgumentError(
+            "Full check requires psi_1; rerun with compute_inverse=true.",
+        ))
         isnothing(res.column_transformation) && throw(ArgumentError("Full check requires column_transformation; rerun with compute_inverse=true."))
-        identity = identity_matrix(R, size(res.phi_1, 1))
-        @assert res.phi_1 * res.phi_1_inv == identity
-        @assert res.phi_1_inv * res.phi_1 == identity
+        identity = identity_matrix(R, size(res.psi_1_inverse, 1))
+        @assert res.psi_1_inverse * res.psi_1 == identity
+        @assert res.psi_1 * res.psi_1_inverse == identity
         @assert res.row_transformation * A * res.column_transformation == res.standard_matrix
     end
 
