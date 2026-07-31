@@ -1,8 +1,14 @@
 PYTHON ?= python3
 SAGE ?= sage
 JULIA ?= julia
+DECODER_PYTHON ?= python3.13
+DECODER_BENCHMARK_REPOSITORY ?= https://github.com/nzy1997/DecoderBenchmarks.jl.git
+DECODER_BENCHMARK_REF ?= paper-decoder-benchmark-2026.2
+DECODER_BENCHMARK_COMMIT ?= d3690ec0ab1018dcc4f49166715fecc5d3e6d5ab
+override DECODER_BENCHMARK_DIR := build/reproduction/decoder-benchmark
 
 .PHONY: check-julia-env test-python test-julia verify-manifest verify reproduce reproduce-full
+.PHONY: prepare-decoder-benchmark verify-decoder-archive reproduce-decoder-smoke replot-decoder-benchmark
 
 check-julia-env:
 	$(JULIA) --startup-file=no --project=julia/ToricBuilder -e 'using Pkg; Pkg.instantiate(; allow_autoprecomp=false); using Oscar; println("Julia/Oscar environment: ok")'
@@ -45,3 +51,22 @@ reproduce-full:
 	mkdir -p build/reproduction/python
 	cp -R python/decoder_core python/decoupling python/results python/scripts build/reproduction/python/
 	cd build/reproduction/python && $(SAGE) scripts/decoupling/reproduce_bb_codes.sage --resume --output-json ../python-bb-full.json --output-csv ../python-bb-full.csv --output-markdown ../python-bb-full.md --checkpoint-json ../python-bb-full.checkpoint.json
+
+prepare-decoder-benchmark:
+	rm -rf $(DECODER_BENCHMARK_DIR)
+	mkdir -p build/reproduction
+	git clone --depth 1 --branch $(DECODER_BENCHMARK_REF) $(DECODER_BENCHMARK_REPOSITORY) $(DECODER_BENCHMARK_DIR)
+	test "$$(git -C $(DECODER_BENCHMARK_DIR) rev-parse HEAD)" = "$(DECODER_BENCHMARK_COMMIT)"
+
+verify-decoder-archive: prepare-decoder-benchmark
+	cd $(DECODER_BENCHMARK_DIR) && $(JULIA) --project -e 'using Pkg; Pkg.instantiate(; allow_autoprecomp=false); Pkg.build("SparseBlossom")'
+	cd $(DECODER_BENCHMARK_DIR) && $(JULIA) --project paper/export_normalized.jl $(abspath build/reproduction/decoder-export)
+	cmp julia/ToricBuilder/results/decoding_benchmark.json build/reproduction/decoder-export/decoding_benchmark.json
+
+reproduce-decoder-smoke: prepare-decoder-benchmark
+	$(MAKE) -C $(DECODER_BENCHMARK_DIR) PYTHON=$(DECODER_PYTHON) paper-python-init
+	$(MAKE) -C $(DECODER_BENCHMARK_DIR) paper-bposd-test
+	$(MAKE) -C $(DECODER_BENCHMARK_DIR) JL='$(JULIA) --project' paper-smoke
+
+replot-decoder-benchmark:
+	$(JULIA) --project=julia/ToricBuilder julia/ToricBuilder/example/scripts/plot_decoding_result_from_data.jl

@@ -6,6 +6,11 @@ const RESULTS_DIR = joinpath(TORICBUILDER_ROOT, "results")
 
 const AREA_PLOT_TEST_MODULE = Module(:AreaPlotPublishedResults)
 Base.include(AREA_PLOT_TEST_MODULE, joinpath(TORICBUILDER_ROOT, "example", "scripts", "plot_area_comparison.jl"))
+const DECODER_PLOT_TEST_MODULE = Module(:DecoderPlotPublishedResults)
+Base.include(
+    DECODER_PLOT_TEST_MODULE,
+    joinpath(TORICBUILDER_ROOT, "example", "scripts", "plot_decoding_result_from_data.jl"),
+)
 
 function markdown_data_row_count(path)
     return count(eachline(path)) do line
@@ -51,22 +56,49 @@ end
 @testset "decoder benchmark provenance" begin
     path = joinpath(RESULTS_DIR, "decoding_benchmark.json")
     payload = JSON.parsefile(path)
-    metadata = payload["metadata"]
 
-    @test metadata["schema_version"] == 1
-    @test metadata["code_family"] == "bivariate bicycle"
-    @test metadata["check_polynomials"] == ["1 + x + x^-1*y", "1 + y + x*y"]
-    @test metadata["toric_code_distances"] == [4, 6, 8, 10]
-    @test occursin("Apple M4", metadata["runtime_environment"])
-    @test !isempty(metadata["source_pipeline"])
-    @test payload["distances"] == metadata["toric_code_distances"]
+    @test payload["schema_version"] == 1
+    @test payload["dataset_class"] == "archived"
+    @test payload["seed_status"] == "not_recorded"
+    @test payload["distances"] == [4, 6, 8, 10]
+    @test payload["statistics"]["interval"] == "profile likelihood"
+    @test payload["statistics"]["likelihood_ratio"] == 1000.0
+    @test payload["provenance"]["environment"]["status"] == "not_recorded"
+    @test payload["provenance"]["methods"]["unitary"]["matching_weights"] == "unweighted"
+    @test payload["provenance"]["methods"]["bposd"]["prior"] == "matched_per_point"
+    @test payload["provenance"]["timing"]["included"] == ["decoder call"]
 
     for distance in payload["distances"]
         key = string(distance)
-        @test haskey(payload["logical_error"][key], "unitary_decouple")
-        @test haskey(payload["decoding_time"][key], "unitary_decouple")
+        @test haskey(payload["logical_error"][key], "unitary")
+        @test haskey(payload["decoding_time"][key], "unitary")
+        @test length(payload["logical_error"][key]["bposd"]["pvec"]) == 17
+        @test length(payload["logical_error"][key]["unitary"]["pvec"]) == 10
         obsolete_series = "t" * "toric"
         @test !haskey(payload["logical_error"][key], obsolete_series)
         @test !haskey(payload["decoding_time"][key], obsolete_series)
     end
+
+    unitary = payload["logical_error"]["4"]["unitary"]
+    @test unitary["nsim"][1] == 1_088_545
+    @test unitary["error_count"][1] == 2_040
+    @test unitary["interval"]["low"][1] ≈ 0.0017241678059600049
+    @test unitary["interval"]["high"][1] ≈ 0.0020323834596710486
+    @test payload["decoding_time"]["4"]["unitary"]["time_res"][1] ==
+        5.317783355712891e-6
+
+    zero_failure = Dict(
+        "interval" => Dict(
+            "estimate" => [0.0],
+            "low" => [0.0],
+            "high" => [6.907752893026142e-7],
+            "likelihood_ratio" => 1000.0,
+        ),
+    )
+    plotted = DECODER_PLOT_TEST_MODULE.logical_plot_series(zero_failure)
+    @test plotted.center == [6.907752893026142e-10]
+    @test plotted.lower == [0.0]
+    @test plotted.upper ≈ [6.900845140133117e-7]
+    @test zero_failure["interval"]["high"][1] >
+        DECODER_PLOT_TEST_MODULE.LOGICAL_ERROR_PANEL_LIMITS.y[1]
 end

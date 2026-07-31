@@ -85,7 +85,8 @@ The tracked Julia result inputs are under
 [`julia/ToricBuilder/results/`](julia/ToricBuilder/results/):
 
 - two complete BB-code decoupling tables;
-- the decoder benchmark data used by the article figure;
+- the decoder benchmark data used by the article figure, plus immutable
+  TensorQEC and DecoderBenchmarks source references;
 - support spreading for all 40 transported CNOTs reported in the supplement.
 
 The tracked Python notebooks are under
