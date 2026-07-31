@@ -105,7 +105,11 @@ publish their JSON, CSV, and Markdown outputs.
 The paper-family decoder comparison entrypoint is
 `python/scripts/unitary_decouple_based_decoder/benchmark_paper_bb_family.sage`.
 It compares the unitary-decouple-based decoder with BP-OSD using identical
-sampled errors. A five-shot dependency and data-flow smoke check is:
+sampled errors. This companion runner uses the repository's `ldpc==2.4.1`
+test/benchmark extra, explicitly selects the serial BP schedule by default,
+and records the selected schedule in its CSV and Markdown output. It is a
+current fixed-shot paired comparison, not the historical figure generator.
+A five-shot dependency and data-flow smoke check is:
 
 ```bash
 cd python
@@ -189,6 +193,9 @@ H_X = (1 + x + x^-1*y, 1 + y + x*y)
 at toric-code distances 4, 6, 8, and 10. The corresponding check matrices
 have `(n, k) = (224, 6), (504, 6), (896, 6), (1400, 6)`; the original BB-code
 distance was not recorded and is not inferred from the toric-sector distance.
+The source manifest therefore records the sector distance separately and
+represents every unknown BB-code distance explicitly as `"d": null` with
+`"distance_status": "not_recorded"`.
 
 The logical-error bars are profile likelihood intervals with likelihood ratio
 `h = 1000`. BP-OSD uses a matched prior at each physical-error point, whereas
@@ -203,9 +210,9 @@ then summed. Consequently `nsim` and `error_count` can exceed the nominal
 limits by at most `workers - 1`; this explains archived counts such as 2,040
 failures for a nominal 2,000-failure limit.
 
-The historical random seeds, CPU/OS, package versions, and original
-matrix-generation command were not recorded. The checked-in arrays are
-therefore an authenticated archive, while the fixed-seed smoke and full
+The historical random seeds, CPU/OS, actual runtime package versions, and
+original matrix-generation command were not recorded. The checked-in arrays
+are therefore an authenticated archive, while the fixed-seed smoke and full
 commands below are new statistical reproductions rather than bit-for-bit
 replay of the Monte Carlo counts.
 
@@ -214,7 +221,14 @@ revisions. It intentionally does not track a Julia `Manifest.toml`, so
 `Pkg.instantiate()` resolves compatible transitive dependencies at execution
 time. `make verify-decoder-archive` verifies the exact tagged commit and
 requires its canonical export to match the checked-in bytes; it does not claim
-to reconstruct the unrecorded historical runtime environment.
+to reconstruct the unrecorded historical runtime environment. Its separately
+locked Python benchmark environment uses `ldpc==2.3.6` and
+`PyMatching==2.2.2`; these are the versions relevant to the archived figure
+workflow released after the historical run, not observations recovered from
+the original runtime. The source manifest labels them with
+`release_dependency_provenance: archival_reproduction_lock`. The companion
+Sage runner described above intentionally has its own `ldpc==2.4.1` pin and
+must not be used to reinterpret the archived counts.
 
 Verify that a fresh checkout of the tagged exporter reproduces the tracked
 JSON byte-for-byte:
