@@ -92,6 +92,7 @@ REQUIRED_FILES = (
     "julia/ToricBuilder/results/bb_code_decoupling_results.md",
     "julia/ToricBuilder/results/additional_bb_code_decoupling_results.md",
     "julia/ToricBuilder/results/decoding_benchmark.json",
+    "julia/ToricBuilder/results/decoder_benchmark_sources.json",
     "julia/ToricBuilder/results/transported_cnot_support.json",
     "julia/ToricBuilder/example/scripts/plot_area_comparison.jl",
     "julia/ToricBuilder/example/scripts/plot_decoding_result_from_data.jl",
@@ -101,6 +102,13 @@ REQUIRED_FILES = (
 CONTENT_SCAN_EXEMPTIONS = {
     "tools/verify_release.py",
     "tests/release/test_release_metadata.py",
+}
+
+MARKER_PATH_EXEMPTIONS = {
+    b"TToricDecoder": {
+        "docs/design/decoder-benchmark-open-source.md",
+        "julia/ToricBuilder/results/decoding_benchmark.json",
+    },
 }
 
 
@@ -172,7 +180,8 @@ def check_contents(root: Path, paths: list[str]) -> list[str]:
         if is_binary(payload):
             continue
         for marker in FORBIDDEN_BYTES:
-            if marker in payload:
+            exempt_paths = MARKER_PATH_EXEMPTIONS.get(marker, set())
+            if marker in payload and path not in exempt_paths:
                 errors.append(f"forbidden marker {marker.decode('utf-8')!r} in {path}")
     return errors
 

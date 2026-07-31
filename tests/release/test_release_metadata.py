@@ -47,6 +47,7 @@ class ReleaseMetadataTests(unittest.TestCase):
             "julia/ToricBuilder/results/bb_code_decoupling_results.md",
             "julia/ToricBuilder/results/additional_bb_code_decoupling_results.md",
             "julia/ToricBuilder/results/decoding_benchmark.json",
+            "julia/ToricBuilder/results/decoder_benchmark_sources.json",
             "julia/ToricBuilder/results/transported_cnot_support.json",
             "julia/ToricBuilder/example/scripts/transported_cnot_support.jl",
             "python/tests/sage/decoupling/test_paper_color_code_matrices.sage",
@@ -162,6 +163,9 @@ class ReleaseMetadataTests(unittest.TestCase):
             "verify",
             "reproduce",
             "reproduce-full",
+            "verify-decoder-archive",
+            "reproduce-decoder-smoke",
+            "replot-decoder-benchmark",
         ):
             self.assertIn(f"{target}:", makefile)
 
@@ -177,6 +181,9 @@ class ReleaseMetadataTests(unittest.TestCase):
             "main(list=ab_list1[1:1]",
             "plot_area_comparison.jl",
             "plot_decoding_result_from_data.jl",
+            "paper-decoder-benchmark-2026.2",
+            "paper-bposd-test",
+            "paper-smoke",
             "transported_cnot_support.jl",
         ):
             self.assertIn(command, makefile)
@@ -214,6 +221,7 @@ class ReleaseMetadataTests(unittest.TestCase):
             "julia/ToricBuilder/results/bb_code_decoupling_results.md",
             "julia/ToricBuilder/results/additional_bb_code_decoupling_results.md",
             "julia/ToricBuilder/results/decoding_benchmark.json",
+            "julia/ToricBuilder/results/decoder_benchmark_sources.json",
             "julia/ToricBuilder/results/transported_cnot_support.json",
         )
         for path in required_paths:

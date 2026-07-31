@@ -6,9 +6,26 @@ const TORICBUILDER_ROOT = normpath(joinpath(@__DIR__, "..", ".."))
 const REPOSITORY_ROOT = normpath(joinpath(TORICBUILDER_ROOT, "..", ".."))
 const EXPORTED_DATA_PATH = joinpath(TORICBUILDER_ROOT, "results", "decoding_benchmark.json")
 const OUTPUT_PDF_PATH = joinpath(REPOSITORY_ROOT, "build", "reproduction", "decoding_benchmark.pdf")
+const LOGICAL_ERROR_PANEL_LIMITS = (x = (1.0e-4, 0.25), y = (1.0e-8, 1.0))
 
 distance_color(cols, d::Integer) = cols[d - 3]
 distance_legend_label(d::Integer) = latexstring("d_{\\text{TC}} = ", d)
+
+function logical_plot_series(series)
+    interval = series["interval"]
+    estimate = Float64.(interval["estimate"])
+    low = Float64.(interval["low"])
+    high = Float64.(interval["high"])
+    likelihood_ratio = Float64(interval["likelihood_ratio"])
+    center = map(estimate, high) do point, upper
+        iszero(point) ? upper / likelihood_ratio : point
+    end
+    lower = map(estimate, center, low) do point, plotted, lower_bound
+        iszero(point) ? 0.0 : plotted - lower_bound
+    end
+    upper = high .- center
+    return (; center, lower, upper)
+end
 
 function draw_decoding_result_from_data(data_path::AbstractString=EXPORTED_DATA_PATH)
     payload = JSON.parsefile(data_path)
@@ -36,12 +53,14 @@ function draw_decoding_result_from_data(data_path::AbstractString=EXPORTED_DATA_
         color = distance_color(cols, d)
 
         bposd = payload["logical_error"][key]["bposd"]
-        errorbars!(ax, bposd["pvec"], bposd["fit"]["avs_plot"], bposd["fit"]["ylow"], bposd["fit"]["yhigh"]; whiskerwidth=10, color=color)
-        scatterlines!(ax, bposd["pvec"], bposd["fit"]["avs_plot"]; color=color, linestyle=:dash)
+        bposd_plot = logical_plot_series(bposd)
+        errorbars!(ax, bposd["pvec"], bposd_plot.center, bposd_plot.lower, bposd_plot.upper; whiskerwidth=10, color=color)
+        scatterlines!(ax, bposd["pvec"], bposd_plot.center; color=color, linestyle=:dash)
 
-        unitary_decouple = payload["logical_error"][key]["unitary_decouple"]
-        errorbars!(ax, unitary_decouple["pvec"], unitary_decouple["fit"]["avs_plot"], unitary_decouple["fit"]["ylow"], unitary_decouple["fit"]["yhigh"]; whiskerwidth=10, color=color)
-        scatterlines!(ax, unitary_decouple["pvec"], unitary_decouple["fit"]["avs_plot"]; color=color)
+        unitary = payload["logical_error"][key]["unitary"]
+        unitary_plot = logical_plot_series(unitary)
+        errorbars!(ax, unitary["pvec"], unitary_plot.center, unitary_plot.lower, unitary_plot.upper; whiskerwidth=10, color=color)
+        scatterlines!(ax, unitary["pvec"], unitary_plot.center; color=color)
     end
 
     for d in ds
@@ -51,13 +70,12 @@ function draw_decoding_result_from_data(data_path::AbstractString=EXPORTED_DATA_
         bposd = payload["decoding_time"][key]["bposd"]
         scatterlines!(ax2, bposd["pvec"], bposd["time_res"]; color=color, linestyle=:dash)
 
-        unitary_decouple = payload["decoding_time"][key]["unitary_decouple"]
-        scatterlines!(ax2, unitary_decouple["pvec"], unitary_decouple["time_res"]; color=color)
+        unitary = payload["decoding_time"][key]["unitary"]
+        scatterlines!(ax2, unitary["pvec"], unitary["time_res"]; color=color)
     end
 
-    limits = payload["logical_error_panel_limits"]
-    xlims!(ax, limits["x"][1], limits["x"][2])
-    ylims!(ax, limits["y"][1], limits["y"][2])
+    xlims!(ax, LOGICAL_ERROR_PANEL_LIMITS.x...)
+    ylims!(ax, LOGICAL_ERROR_PANEL_LIMITS.y...)
 
     legend_elements = Any[
         LineElement(color=:black, linestyle=:solid, linewidth=3),

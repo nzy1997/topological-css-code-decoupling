@@ -169,19 +169,90 @@ running macOS 26.5.1 and Julia 1.12.5.
 
 ## Decoder Benchmark Figure
 
-The exact plotted arrays and provenance are stored in
-`julia/ToricBuilder/results/decoding_benchmark.json`. They cover the BB code
+The exact normalized arrays and per-file provenance are stored in
+`julia/ToricBuilder/results/decoding_benchmark.json`. Immutable public source
+references and the dataset SHA-256 are recorded in
+`julia/ToricBuilder/results/decoder_benchmark_sources.json`.
+
+The historical implementation is preserved at TensorQEC tag
+`paper-decoder-2026.1`; experiment orchestration, selected raw files, and the
+canonical exporter are preserved at DecoderBenchmarks tag
+`paper-decoder-benchmark-2026.2`. Both tags resolve through the separately
+licensed public matching wrapper at its pinned commit.
+
+The archived data cover the BB code
 
 ```text
 H_X = (1 + x + x^-1*y, 1 + y + x*y)
 ```
 
-at toric-code distances 4, 6, 8, and 10. Recreate the PDF with:
+at toric-code distances 4, 6, 8, and 10. The corresponding check matrices
+have `(n, k) = (224, 6), (504, 6), (896, 6), (1400, 6)`; the original BB-code
+distance was not recorded and is not inferred from the toric-sector distance.
+
+The logical-error bars are profile likelihood intervals with likelihood ratio
+`h = 1000`. BP-OSD uses a matched prior at each physical-error point, whereas
+the historical unitary-decouple implementation uses unweighted MWPM. Timing
+is decoder-call-only: compilation, error sampling, syndrome generation and
+validation, process startup, and file I/O are excluded.
+
+The noise model is independent single-qubit depolarizing Pauli noise:
+`P(I)=1-p` and `P(X)=P(Y)=P(Z)=p/3`. Before each parallel logical-error round,
+the remaining sample and failure budgets are ceiling-divided across workers,
+then summed. Consequently `nsim` and `error_count` can exceed the nominal
+limits by at most `workers - 1`; this explains archived counts such as 2,040
+failures for a nominal 2,000-failure limit.
+
+The historical random seeds, CPU/OS, package versions, and original
+matrix-generation command were not recorded. The checked-in arrays are
+therefore an authenticated archive, while the fixed-seed smoke and full
+commands below are new statistical reproductions rather than bit-for-bit
+replay of the Monte Carlo counts.
+
+The DecoderBenchmarks tag pins its direct TensorQEC and SparseBlossom Git
+revisions. It intentionally does not track a Julia `Manifest.toml`, so
+`Pkg.instantiate()` resolves compatible transitive dependencies at execution
+time. `make verify-decoder-archive` verifies the exact tagged commit and
+requires its canonical export to match the checked-in bytes; it does not claim
+to reconstruct the unrecorded historical runtime environment.
+
+Verify that a fresh checkout of the tagged exporter reproduces the tracked
+JSON byte-for-byte:
 
 ```bash
-julia --project=julia/ToricBuilder \
-  julia/ToricBuilder/example/scripts/plot_decoding_result_from_data.jl
+make verify-decoder-archive
 ```
+
+Run deterministic BP-OSD, unitary logical-error, and unitary timing smoke
+benchmarks in the tagged repository:
+
+```bash
+make reproduce-decoder-smoke
+```
+
+Recreate the PDF from the archived normalized data with:
+
+```bash
+make replot-decoder-benchmark
+```
+
+This target runs
+`julia/ToricBuilder/example/scripts/plot_decoding_result_from_data.jl`.
+
+The full seeded unitary logical-error protocol is available from the tagged
+DecoderBenchmarks checkout as `make paper-logical-full`; it requires 120
+Julia worker processes. The full seeded BP-OSD grids are run separately for
+each distance after `make paper-python-init`:
+
+```bash
+for distance in 4 6 8 10; do
+  build/paper/python-env/bin/python paper/python/run_bposd.py \
+    --mode full --distance "$distance" --workers 120 \
+    --output "build/paper/full/bposd-d${distance}.json"
+done
+```
+
+These full runs are intentionally not part of routine CI.
 
 ## Transported CNOTs
 

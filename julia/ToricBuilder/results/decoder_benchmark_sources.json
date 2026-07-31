@@ -1,0 +1,65 @@
+{
+  "schema_version": 1,
+  "dataset": "decoding_benchmark.json",
+  "dataset_sha256": "60ef2ab0d7c1d3c5aa9e214cc096872ef8af3614d7ec5a895ff27f1f15675905",
+  "exported_at": "2026-07-31",
+  "historical_data_generation_date": "not_recorded",
+  "export_command": "julia --project paper/export_normalized.jl OUTPUT_DIRECTORY",
+  "repositories": {
+    "matching_wrapper": {
+      "repository": "https://github.com/nzy1997/PyMatchingWrapper",
+      "commit": "9306524aada307e9310a6a981834d983ce987503"
+    },
+    "tensorqec": {
+      "repository": "https://github.com/nzy1997/TensorQEC.jl",
+      "tag": "paper-decoder-2026.1",
+      "commit": "1eb67a8712d66ad5a6b16895c52b5a0e9089a4c5"
+    },
+    "decoder_benchmarks": {
+      "repository": "https://github.com/nzy1997/DecoderBenchmarks.jl",
+      "tag": "paper-decoder-benchmark-2026.2",
+      "commit": "d3690ec0ab1018dcc4f49166715fecc5d3e6d5ab"
+    }
+  },
+  "release_dependencies": {
+    "julia_minimum": "1.11",
+    "python": "3.13",
+    "tensorqec": "2.2.1",
+    "sparse_blossom_wrapper": "0.1.0",
+    "ldpc": "2.3.6",
+    "pymatching": "2.2.2"
+  },
+  "code_instances": {
+    "4": {
+      "toric_code_distance": 4,
+      "n": 224,
+      "k": 6,
+      "code_distance_status": "not_recorded"
+    },
+    "6": {
+      "toric_code_distance": 6,
+      "n": 504,
+      "k": 6,
+      "code_distance_status": "not_recorded"
+    },
+    "8": {
+      "toric_code_distance": 8,
+      "n": 896,
+      "k": 6,
+      "code_distance_status": "not_recorded"
+    },
+    "10": {
+      "toric_code_distance": 10,
+      "n": 1400,
+      "k": 6,
+      "code_distance_status": "not_recorded"
+    }
+  },
+  "limitations": [
+    "Historical random seeds were not recorded.",
+    "Historical CPU, OS, Julia, Python, and package versions were not recorded.",
+    "The original matrix-generation command and source revision were not recorded.",
+    "The DecoderBenchmarks tag pins direct Git dependencies but resolves compatible Julia transitive dependencies at execution time.",
+    "The BB-code distance was not recorded; n and k are derived from the curated check matrices."
+  ]
+}

@@ -1,5 +1,10 @@
 # Decoder benchmark open-source design
 
+Status: implemented as archival releases `paper-decoder-2026.1` and
+`paper-decoder-benchmark-2026.2`. This document preserves the design
+rationale; the authoritative commands and current limitations are in
+`docs/reproduction.md`.
+
 ## Need
 
 The article's decoder figure is currently reproducible only at the plotting
@@ -64,7 +69,7 @@ on the later `zy/polish` worktree because that line mixes the historical
 unitary-decouple experiment with later bundle-decoder experiments.
 
 After the branch is reproducible and its selected raw data are verified, tag
-it `paper-decoder-benchmark-2026.1`.
+it `paper-decoder-benchmark-2026.2`.
 
 ### topological-css-code-decoupling
 
