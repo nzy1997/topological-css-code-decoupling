@@ -52,6 +52,10 @@ class DecoderBenchmarkReleaseTests(unittest.TestCase):
         repositories = payload["repositories"]
 
         self.assertEqual(1, payload["schema_version"])
+        self.assertEqual(
+            "archival_reproduction_lock",
+            payload["release_dependency_provenance"],
+        )
         self.assertEqual("decoding_benchmark.json", payload["dataset"])
         self.assertEqual(
             "60ef2ab0d7c1d3c5aa9e214cc096872ef8af3614d7ec5a895ff27f1f15675905",
@@ -134,7 +138,10 @@ class DecoderBenchmarkReleaseTests(unittest.TestCase):
         for toric_distance, (n, k) in expected.items():
             instance = payload["code_instances"][toric_distance]
             self.assertEqual(toric_distance, str(instance["toric_code_distance"]))
+            self.assertEqual(toric_distance, str(instance["toric_sector_distance"]))
             self.assertEqual((n, k), (instance["n"], instance["k"]))
+            self.assertIsNone(instance["d"])
+            self.assertEqual("not_recorded", instance["distance_status"])
             self.assertEqual("not_recorded", instance["code_distance_status"])
 
     def test_make_and_docs_expose_archive_smoke_and_replot_workflows(self) -> None:

@@ -208,6 +208,14 @@ The decoder comparison uses
 sage scripts/unitary_decouple_based_decoder/benchmark_paper_bb_family.sage
 ```
 
+This companion comparison uses the pinned `ldpc==2.4.1` optional dependency.
+Its BP update schedule defaults explicitly to `serial`; use
+`--bp-schedule parallel` only for a separately labeled run. The selected
+schedule is recorded in the generated CSV and Markdown metadata. The archived
+article figure instead uses the separately released DecoderBenchmarks
+environment, which locks `ldpc==2.3.6`; see the repository-level reproduction
+guide for that workflow.
+
 Its CSV, Markdown, and plot are written under
 `results/unitary_decouple_based_decoder/`.
 

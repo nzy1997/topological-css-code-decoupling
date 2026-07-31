@@ -22,6 +22,7 @@ def bp_osd_decoder(
     *,
     bp_method="minimum_sum",
     ms_scaling_factor=0.625,
+    schedule="serial",
 ):
     """Construct one ``ldpc.BpOsdDecoder`` with Python-native numeric args.
 
@@ -32,6 +33,7 @@ def bp_osd_decoder(
         osd_order: Ordered-statistics decoding order for BPOSD.
         bp_method: Belief-propagation update rule requested from the LDPC package.
         ms_scaling_factor: Minimum-sum BP scaling factor.
+        schedule: Belief-propagation update schedule.
 
     Returns:
         object: Configured ``ldpc.BpOsdDecoder`` instance.
@@ -46,6 +48,7 @@ def bp_osd_decoder(
         max_iter=int(max_iter),
         bp_method=bp_method,
         ms_scaling_factor=float(ms_scaling_factor),
+        schedule=schedule,
         osd_method="OSD_CS",
         osd_order=int(osd_order),
     )

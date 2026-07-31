@@ -5,6 +5,7 @@
   "exported_at": "2026-07-31",
   "historical_data_generation_date": "not_recorded",
   "export_command": "julia --project paper/export_normalized.jl OUTPUT_DIRECTORY",
+  "release_dependency_provenance": "archival_reproduction_lock",
   "repositories": {
     "matching_wrapper": {
       "repository": "https://github.com/nzy1997/PyMatchingWrapper",
@@ -32,26 +33,38 @@
   "code_instances": {
     "4": {
       "toric_code_distance": 4,
+      "toric_sector_distance": 4,
       "n": 224,
       "k": 6,
+      "d": null,
+      "distance_status": "not_recorded",
       "code_distance_status": "not_recorded"
     },
     "6": {
       "toric_code_distance": 6,
+      "toric_sector_distance": 6,
       "n": 504,
       "k": 6,
+      "d": null,
+      "distance_status": "not_recorded",
       "code_distance_status": "not_recorded"
     },
     "8": {
       "toric_code_distance": 8,
+      "toric_sector_distance": 8,
       "n": 896,
       "k": 6,
+      "d": null,
+      "distance_status": "not_recorded",
       "code_distance_status": "not_recorded"
     },
     "10": {
       "toric_code_distance": 10,
+      "toric_sector_distance": 10,
       "n": 1400,
       "k": 6,
+      "d": null,
+      "distance_status": "not_recorded",
       "code_distance_status": "not_recorded"
     }
   },

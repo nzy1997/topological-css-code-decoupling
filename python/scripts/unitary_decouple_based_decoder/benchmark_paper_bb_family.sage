@@ -48,6 +48,11 @@ def parse_args():
     parser.add_argument("--shots", type=int, default=100000)
     parser.add_argument("--seed", type=int, default=20260607)
     parser.add_argument("--bp-method", default="minimum_sum")
+    parser.add_argument(
+        "--bp-schedule",
+        choices=("serial", "parallel"),
+        default="serial",
+    )
     parser.add_argument("--ms-scaling-factor", type=float, default=0.625)
     parser.add_argument("--osd-order", type=int, default=2)
     parser.add_argument("--max-iter", type=int, default=288)
@@ -177,6 +182,7 @@ def result_rows(decoder, distance, probability, stats, args):
                 "shots": item.shots,
                 "seed": args.seed,
                 "bp_method": args.bp_method,
+                "bp_schedule": args.bp_schedule,
                 "ms_scaling_factor": args.ms_scaling_factor,
                 "osd_order": args.osd_order,
                 "max_iter": args.max_iter,
@@ -213,6 +219,7 @@ def write_outputs(rows, args):
         "shots",
         "seed",
         "bp_method",
+        "bp_schedule",
         "ms_scaling_factor",
         "osd_order",
         "max_iter",
@@ -248,6 +255,7 @@ def write_outputs(rows, args):
         stream.write(f"- Seed: `{args.seed}`\n")
         stream.write(f"- Shots per point: `{args.shots}`\n")
         stream.write(f"- BP method: `{args.bp_method}`\n")
+        stream.write(f"- BP schedule: `{args.bp_schedule}`\n")
         stream.write(f"- Min-sum scaling: `{args.ms_scaling_factor}`\n")
         stream.write(f"- OSD order: `{args.osd_order}`\n")
         stream.write(f"- Maximum BP iterations: `{args.max_iter}`\n")
@@ -290,6 +298,7 @@ def run(args):
                 args.osd_order,
                 bp_method=args.bp_method,
                 ms_scaling_factor=args.ms_scaling_factor,
+                schedule=args.bp_schedule,
             )
             stats = run_probability(
                 decoder,
